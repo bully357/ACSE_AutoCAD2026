@@ -11,27 +11,30 @@ namespace ACSE.AutoCAD2026.Standards
         public string TemplatePath { get; set; } = "";
 
         // ---- Text Styles ----
+        // NOTE: All Approved* sets use case-insensitive comparison because AutoCAD
+        // treats layer/style/linetype names as case-insensitive. A drawing with
+        // layer "e-anno-text" must match approved "E-ANNO-TEXT".
         public string? RequiredTextStyle { get; set; }
-        public HashSet<string> ApprovedTextStyles { get; set; } = [];
+        public HashSet<string> ApprovedTextStyles { get; set; } = new(System.StringComparer.OrdinalIgnoreCase);
         /// <summary>
         /// Maps text style name to font file (e.g., "STANDARD" -> "romans.shx")
         /// </summary>
-        public Dictionary<string, string> TextStyleFonts { get; set; } = [];
+        public Dictionary<string, string> TextStyleFonts { get; set; } = new(System.StringComparer.OrdinalIgnoreCase);
 
         // ---- Dimension Styles ----
         public string? RequiredDimStyle { get; set; }
-        public HashSet<string> ApprovedDimStyles { get; set; } = [];
+        public HashSet<string> ApprovedDimStyles { get; set; } = new(System.StringComparer.OrdinalIgnoreCase);
 
         // ---- Layers ----
         public string[]? AllowedLayers { get; set; }
-        public HashSet<string> ApprovedLayers { get; set; } = [];
+        public HashSet<string> ApprovedLayers { get; set; } = new(System.StringComparer.OrdinalIgnoreCase);
         public string LayerNamePrefix { get; set; } = "";
         public Dictionary<string, string>? LayerMap { get; set; }
 
         // ---- Linetypes ----
         public string? RequiredLinetype { get; set; }
         public string[]? AllowedLinetypes { get; set; }
-        public HashSet<string> ApprovedLinetypes { get; set; } = [];
+        public HashSet<string> ApprovedLinetypes { get; set; } = new(System.StringComparer.OrdinalIgnoreCase);
 
         // ---- Options ----
         /// <summary>
