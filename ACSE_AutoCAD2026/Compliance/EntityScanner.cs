@@ -20,15 +20,11 @@ public static class EntityScanner
         var db = doc.Database;
         var ed = doc.Editor;
 
-        // Emergency safe mode - skip known corrupted drawings
-        string fileName = System.IO.Path.GetFileName(doc.Name ?? "").ToLowerInvariant();
-        if (fileName.Contains("ykm-d-atct") || fileName.Contains("corrupt"))
-        {
-            ed.WriteMessage("\n[WARN] This drawing is known to have corruption issues.");
-            ed.WriteMessage("\n[WARN] Scanning in SAFE MODE - skipping detailed entity scanning.");
-            ed.WriteMessage("\n[WARN] Only basic database checks will be performed.");
-            return result; // Return empty result
-        }
+        // NOTE: The old hardcoded filename-based "safe mode" skip was removed here.
+        // It silently returned an empty scan for any drawing whose filename contained
+        // "ykm-d-atct" or "corrupt", which hid real violations and surprised users.
+        // Per-entity try/catch inside ScanSpace already handles corrupted entities
+        // gracefully without skipping the whole drawing.
 
         try
         {
@@ -144,10 +140,16 @@ public static class EntityScanner
                 if (string.IsNullOrEmpty(ent.Layer) || string.IsNullOrEmpty(ent.Linetype))
                     continue;
 
-                result.SetTotalEntities(
-                result.GetTotalEntities() + 1);
+                result.SetTotalEntities(result.GetTotalEntities() + 1);
                 result.GetLayersFound().Add(ent.Layer);
                 result.LinetypesFound.Add(ent.Linetype);
+
+                // Tracks whether a TextStyle-level violation (TS-001/TS-002/TS-005/
+                // TS-006/TS-007/TS-008) was raised for this entity. Downstream font
+                // rules (TS-003/TS-004/TF-001) are redundant when the whole style is
+                // going to be swapped anyway — reporting them all produces confusing
+                // "Fix All only fixed 80%" numbers. See priority 6a in the review.
+                bool textStyleViolationRaised = false;
 
                 var handleStr = ent.Handle.ToString();
 
@@ -296,10 +298,12 @@ public static class EntityScanner
                         Layer = ent.Layer,
                         AutoFixable = true
                     });
+                    textStyleViolationRaised = true;
                 }
 
-                // Phase 2: Check font file type
-                if (!t.TextStyleId.IsNull && t.TextStyleId.IsValid)
+                // Phase 2: Check font file type (only if we haven't already queued a
+                // whole-style swap — see textStyleViolationRaised comment above).
+                if (!textStyleViolationRaised && !t.TextStyleId.IsNull && t.TextStyleId.IsValid)
                 {
                     try
                     {
@@ -331,7 +335,7 @@ public static class EntityScanner
                 }
 
                 // ===== ADVANCED TEXT CHECKS: Font, Size, Annotative =====
-                CheckTextEntityAdvanced(tr, t, standards, result, handleStr, ent.Layer, "DBText");
+                CheckTextEntityAdvanced(tr, t, standards, result, handleStr, ent.Layer, skipFontCheck: textStyleViolationRaised);
             }
             else if (ent is MText mt)
             {
@@ -358,10 +362,12 @@ public static class EntityScanner
                         Layer = ent.Layer,
                         AutoFixable = true
                     });
+                    textStyleViolationRaised = true;
                 }
 
-                // Phase 2: Check font file type for MText
-                if (!mt.TextStyleId.IsNull && mt.TextStyleId.IsValid)
+                // Phase 2: Check font file type for MText (suppressed when a TS-002
+                // style swap is already queued — the new style brings its own font).
+                if (!textStyleViolationRaised && !mt.TextStyleId.IsNull && mt.TextStyleId.IsValid)
                 {
                     try
                     {
@@ -393,7 +399,7 @@ public static class EntityScanner
                 }
 
                 // ===== ADVANCED TEXT CHECKS: Font, Size, Annotative =====
-                CheckTextEntityAdvanced(tr, mt, standards, result, handleStr, ent.Layer, "MText");
+                CheckTextEntityAdvanced(tr, mt, standards, result, handleStr, ent.Layer, skipFontCheck: textStyleViolationRaised);
             }
             else if (ent is AttributeDefinition attDef)
             {
@@ -419,6 +425,7 @@ public static class EntityScanner
                         Layer = ent.Layer,
                         AutoFixable = true
                     });
+                    textStyleViolationRaised = true;
                 }
             }
             else if (ent is AttributeReference attRef)
@@ -445,49 +452,50 @@ public static class EntityScanner
                         Layer = ent.Layer,
                         AutoFixable = true
                     });
+                    textStyleViolationRaised = true;
                 }
             }
             else if (ent is MLeader mleader)
             {
-                // MLeader uses MLeaderStyle which contains text style
-                // Debug: Always log when we find an MLeader
-                var db = Application.DocumentManager.MdiActiveDocument?.Database;
-                var ed = Application.DocumentManager.MdiActiveDocument?.Editor;
+                // MLeader uses MLeaderStyle (shared) or a per-instance TextStyleId
+                // override. Prefer the override when present — it's what actually
+                // renders the text.
+                ObjectId mleaderTextStyleId = !mleader.TextStyleId.IsNull && mleader.TextStyleId.IsValid
+                    ? mleader.TextStyleId
+                    : ObjectId.Null;
 
-                ed?.WriteMessage($"\n[SCAN DEBUG] Found MLeader: Handle={handleStr}, HasStyle={!mleader.MLeaderStyle.IsNull}, ContentType={mleader.ContentType}");
-
-                if (!mleader.MLeaderStyle.IsNull && mleader.MLeaderStyle.IsValid)
+                if (mleaderTextStyleId.IsNull && !mleader.MLeaderStyle.IsNull && mleader.MLeaderStyle.IsValid)
                 {
                     try
                     {
                         var mleaderStyle = (MLeaderStyle)tr.GetObject(mleader.MLeaderStyle, OpenMode.ForRead);
-                        ed?.WriteMessage($"\n  MLeaderStyle name: {mleaderStyle.Name}, HasTextStyle={!mleaderStyle.TextStyleId.IsNull}");
+                        mleaderTextStyleId = mleaderStyle.TextStyleId;
+                    }
+                    catch { /* fall through with Null */ }
+                }
 
-                        if (!mleaderStyle.TextStyleId.IsNull)
+                if (!mleaderTextStyleId.IsNull && mleaderTextStyleId.IsValid)
+                {
+                    try
+                    {
                         {
-                            var tsName = GetTextStyleName(tr, mleaderStyle.TextStyleId);
+                            var tsName = GetTextStyleName(tr, mleaderTextStyleId);
                             result.TextStylesFound.Add(tsName);
-                            ed?.WriteMessage($"\n  Text style: {tsName}");
 
                             // MLeaders: If RequiredTextStyle is set, MUST use exactly that style
                             // (not just any approved style)
                             bool isCompliant;
                             if (!string.IsNullOrWhiteSpace(standards.RequiredTextStyle))
                             {
-                                // Strict mode: MLeader must use the RequiredTextStyle
                                 isCompliant = string.Equals(tsName, standards.RequiredTextStyle, StringComparison.OrdinalIgnoreCase);
-                                ed?.WriteMessage($"\n  Required style mode: Checking if '{tsName}' == '{standards.RequiredTextStyle}': {isCompliant}");
                             }
                             else
                             {
-                                // Fallback: Check approved styles list
                                 isCompliant = standards.ApprovedTextStyles.Contains(tsName);
-                                ed?.WriteMessage($"\n  Approved list mode: Is approved: {isCompliant}");
                             }
 
                             if (!isCompliant && (standards.ApprovedTextStyles.Count > 0 || !string.IsNullOrWhiteSpace(standards.RequiredTextStyle)))
                             {
-                                ed?.WriteMessage($"\n  Creating violation for MLeader!");
                                 result.Violations.Add(new Violation
                                 {
                                     Type = ViolationType.TextStyle,
@@ -501,25 +509,14 @@ public static class EntityScanner
                                     Layer = ent.Layer,
                                     AutoFixable = true
                                 });
+                                textStyleViolationRaised = true;
                             }
-                            else
-                            {
-                                ed?.WriteMessage($"\n  Text style is compliant, no violation.");
-                            }
-                        }
-                        else
-                        {
-                            ed?.WriteMessage($"\n  MLeaderStyle has no TextStyleId!");
                         }
                     }
-                    catch (System.Exception ex)
+                    catch
                     {
-                        ed?.WriteMessage($"\n  [WARN] Error reading MLeaderStyle: {ex.Message}");
+                        // Skip MLeader whose text-style record can't be read.
                     }
-                }
-                else
-                {
-                    ed?.WriteMessage($"\n  MLeader has no MLeaderStyle!");
                 }
             }
             else if (ent is Leader leader)
@@ -554,6 +551,7 @@ public static class EntityScanner
                                     Layer = ent.Layer,
                                     AutoFixable = true
                                 });
+                                textStyleViolationRaised = true;
                             }
                         }
                     }
@@ -621,7 +619,9 @@ public static class EntityScanner
                                         EntityHandle = handleStr,
                                         EntityName = dim.GetType().Name,
                                         Layer = ent.Layer,
-                                        AutoFixable = false
+                                        // InteractiveFixEngine now rewrites Dimtxsty via a
+                                        // per-variant DimStyle (see FindOrCreateDimStyleVariant).
+                                        AutoFixable = true
                                     });
                                 }
                             }
@@ -769,19 +769,48 @@ public static class EntityScanner
     // ===== ADVANCED ENTITY CHECKING METHODS =====
 
     /// <summary>
-    /// Checks MText or DBText for advanced violations: font, size, annotative settings.
+    /// Strict font match: compares the full font filename or its stem (no extension)
+    /// case-insensitively. Avoids false positives from substring matching —
+    /// e.g. "arial.ttf" no longer matches "arialbd.ttf".
     /// </summary>
-    private static void CheckTextEntityAdvanced(Transaction tr, dynamic textEnt, StandardsModel standards, 
-        ScanResult result, string handleStr, string layer, string entityType)
+    private static bool FontMatches(string actualFont, string requiredFont)
+    {
+        if (string.IsNullOrWhiteSpace(actualFont) || string.IsNullOrWhiteSpace(requiredFont))
+            return false;
+
+        if (string.Equals(actualFont, requiredFont, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        string actualStem = System.IO.Path.GetFileNameWithoutExtension(actualFont);
+        string requiredStem = System.IO.Path.GetFileNameWithoutExtension(requiredFont);
+        return string.Equals(actualStem, requiredStem, StringComparison.OrdinalIgnoreCase);
+    }
+
+    // Overloads replace the original `dynamic` parameter — the compiler can now
+    // resolve TextStyleId / TextHeight / Annotative directly on each concrete type.
+    private static void CheckTextEntityAdvanced(Transaction tr, DBText textEnt, StandardsModel standards,
+        ScanResult result, string handleStr, string layer, bool skipFontCheck)
+    {
+        CheckTextFontSizeAnnotative(tr, textEnt.ObjectId, textEnt.TextStyleId, textEnt.Height,
+            annotative: null, standards, result, handleStr, layer, "DBText", skipFontCheck);
+    }
+
+    private static void CheckTextEntityAdvanced(Transaction tr, MText textEnt, StandardsModel standards,
+        ScanResult result, string handleStr, string layer, bool skipFontCheck)
+    {
+        CheckTextFontSizeAnnotative(tr, textEnt.ObjectId, textEnt.TextStyleId, textEnt.TextHeight,
+            annotative: textEnt.Annotative, standards, result, handleStr, layer, "MText", skipFontCheck);
+    }
+
+    private static void CheckTextFontSizeAnnotative(Transaction tr, ObjectId entityId, ObjectId styleId,
+        double textHeight, AnnotativeStates? annotative, StandardsModel standards, ScanResult result,
+        string handleStr, string layer, string entityType, bool skipFontCheck)
     {
         try
         {
-            ObjectId entityId = textEnt.ObjectId;
-            ObjectId styleId = textEnt.TextStyleId;
-            double textHeight = entityType == "MText" ? (textEnt as MText)?.TextHeight ?? 0 : (textEnt as DBText)?.Height ?? 0;
-
-            // Check font name (if required)
-            if (!string.IsNullOrWhiteSpace(standards.RequiredFont) && !styleId.IsNull && styleId.IsValid)
+            // Check font name — suppressed when the containing text style is already
+            // being replaced (the new style brings its own font).
+            if (!skipFontCheck && !string.IsNullOrWhiteSpace(standards.RequiredFont) && !styleId.IsNull && styleId.IsValid)
             {
                 try
                 {
@@ -793,8 +822,8 @@ public static class EntityScanner
                         actualFont = font.TypeFace ?? "";
                     }
 
-                    if (!string.IsNullOrWhiteSpace(actualFont) && 
-                        !actualFont.Contains(standards.RequiredFont, StringComparison.OrdinalIgnoreCase))
+                    if (!string.IsNullOrWhiteSpace(actualFont) &&
+                        !FontMatches(actualFont, standards.RequiredFont))
                     {
                         result.Violations.Add(new Violation
                         {
@@ -822,8 +851,8 @@ public static class EntityScanner
                     Type = ViolationType.TextSize,
                     RuleId = "TH-001",
                     Message = $"{entityType} height does not match required size.",
-                    Expected = standards.RequiredFontSize.ToString("F3"),
-                    Actual = textHeight.ToString("F3"),
+                    Expected = standards.RequiredFontSize.ToString("F3", System.Globalization.CultureInfo.InvariantCulture),
+                    Actual = textHeight.ToString("F3", System.Globalization.CultureInfo.InvariantCulture),
                     EntityId = entityId,
                     EntityHandle = handleStr,
                     EntityName = entityType,
@@ -832,26 +861,23 @@ public static class EntityScanner
                 });
             }
 
-            // Check annotative property (if required)
-            if (standards.RequireAnnotative && entityType == "MText")
+            // Check annotative property (MText only — DBText has no Annotative state)
+            if (standards.RequireAnnotative && entityType == "MText"
+                && annotative.HasValue && annotative.Value != AnnotativeStates.True)
             {
-                var mtext = textEnt as MText;
-                if (mtext != null && mtext.Annotative != AnnotativeStates.True)
+                result.Violations.Add(new Violation
                 {
-                    result.Violations.Add(new Violation
-                    {
-                        Type = ViolationType.Annotative,
-                        RuleId = "AN-001",
-                        Message = "MText should be annotative.",
-                        Expected = "Annotative",
-                        Actual = "Non-Annotative",
-                        EntityId = entityId,
-                        EntityHandle = handleStr,
-                        EntityName = entityType,
-                        Layer = layer,
-                        AutoFixable = true
-                    });
-                }
+                    Type = ViolationType.Annotative,
+                    RuleId = "AN-001",
+                    Message = "MText should be annotative.",
+                    Expected = "Annotative",
+                    Actual = "Non-Annotative",
+                    EntityId = entityId,
+                    EntityHandle = handleStr,
+                    EntityName = entityType,
+                    Layer = layer,
+                    AutoFixable = true
+                });
             }
         }
         catch { /* Skip errors in advanced checking */ }
@@ -890,8 +916,8 @@ public static class EntityScanner
                         actualFont = font.TypeFace ?? "";
                     }
 
-                    if (!string.IsNullOrWhiteSpace(actualFont) && 
-                        !actualFont.Contains(requiredFont, StringComparison.OrdinalIgnoreCase))
+                    if (!string.IsNullOrWhiteSpace(actualFont) &&
+                        !FontMatches(actualFont, requiredFont))
                     {
                         result.Violations.Add(new Violation
                         {
