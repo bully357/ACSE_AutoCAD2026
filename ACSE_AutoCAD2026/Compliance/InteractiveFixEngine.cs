@@ -29,6 +29,11 @@ namespace ACSE.AutoCAD2026.Compliance
             var db = doc.Database;
             var ed = doc.Editor;
 
+            // CRITICAL: Lock the document. This method is called from a modeless
+            // WPF window; without the lock, every ForWrite open throws eLockViolation
+            // and the outer catch silently counts it as "failed".
+            // In preview mode we only read, but locking is cheap and still safe.
+            using var docLock = doc.LockDocument();
             using var tr = db.TransactionManager.StartTransaction();
 
             foreach (var vm in violations.Where(v => v.IsSelected && v.AutoFixable))
@@ -37,6 +42,7 @@ namespace ACSE.AutoCAD2026.Compliance
                 {
                     if (!FixEngine.TryGetObjectIdFromHandle(db, vm.Violation.EntityHandle, out ObjectId id))
                     {
+                        ed.WriteMessage($"\n[ACSE] Stale handle, skipping: {vm.Violation.EntityHandle}");
                         result.FailedCount++;
                         continue;
                     }
@@ -65,7 +71,7 @@ namespace ACSE.AutoCAD2026.Compliance
                 }
                 catch (Exception ex)
                 {
-                    ed.WriteMessage($"\n[ERROR] Fix failed for {vm.Violation.EntityHandle}: {ex.Message}");
+                    ed.WriteMessage($"\n[ERROR] Fix failed for {vm.EntityName} {vm.Violation.EntityHandle} ({vm.Violation.Type}): {ex.Message}");
                     result.FailedCount++;
                 }
             }
@@ -105,26 +111,67 @@ namespace ACSE.AutoCAD2026.Compliance
 
                 case ViolationType.TextStyle:
                     string targetStyle = vm.CustomStyle ?? v.Expected ?? standards.RequiredTextStyle;
-                    if (!string.IsNullOrEmpty(targetStyle))
+                    if (string.IsNullOrEmpty(targetStyle))
+                        break;
+
+                    // Resolve target style. If it's not in the drawing, attempt to
+                    // import from the template (same behavior as Fix-All). If still
+                    // missing, refuse the fix rather than silently assigning the
+                    // current default text style.
+                    // GetOrImportTextStyleByName checks the drawing first, then imports
+                    // from the template if missing. Returns ObjectId.Null on failure.
+                    ObjectId styleId = FixEngine.GetOrImportTextStyleByName(db, tr, targetStyle, standards.TemplatePath ?? "");
+                    if (styleId.IsNull || !styleId.IsValid)
                     {
-                        ObjectId styleId = GetTextStyleId(db, tr, targetStyle);
-                        if (ent is DBText dbText)
-                            dbText.TextStyleId = styleId;
-                        else if (ent is MText mtext)
-                            mtext.TextStyleId = styleId;
-                        return true;
+                        var ed = Application.DocumentManager.MdiActiveDocument?.Editor;
+                        ed?.WriteMessage($"\n[ACSE] TextStyle '{targetStyle}' not found in drawing or template; skipping.");
+                        return false;
                     }
-                    break;
+
+                    // Apply to every entity type the scanner flags for TextStyle.
+                    switch (ent)
+                    {
+                        case DBText dbText:
+                            dbText.TextStyleId = styleId;
+                            return true;
+                        case MText mtext:
+                            mtext.TextStyleId = styleId;
+                            return true;
+                        case AttributeDefinition attDef:
+                            attDef.TextStyleId = styleId;
+                            return true;
+                        case AttributeReference attRef:
+                            attRef.TextStyleId = styleId;
+                            return true;
+                        case MLeader mleader:
+                            // Per-instance override (doesn't mutate the shared MLeaderStyle).
+                            mleader.TextStyleId = styleId;
+                            return true;
+                        case Leader leader when !leader.Annotation.IsNull && leader.Annotation.IsValid:
+                            if (tr.GetObject(leader.Annotation, OpenMode.ForWrite) is MText leaderMText)
+                            {
+                                leaderMText.TextStyleId = styleId;
+                                return true;
+                            }
+                            break;
+                    }
+                    return false;
 
                 case ViolationType.DimStyle:
                     string targetDimStyle = vm.CustomStyle ?? v.Expected ?? standards.RequiredDimStyle;
-                    if (!string.IsNullOrEmpty(targetDimStyle) && ent is Dimension dim)
+                    if (string.IsNullOrEmpty(targetDimStyle) || ent is not Dimension dim)
+                        break;
+
+                    ObjectId dimStyleId = FixEngine.GetOrImportDimStyle(db, tr, targetDimStyle, standards.TemplatePath ?? "");
+                    if (dimStyleId.IsNull || !dimStyleId.IsValid)
                     {
-                        ObjectId dimStyleId = GetDimStyleId(db, tr, targetDimStyle);
-                        dim.DimensionStyle = dimStyleId;
-                        return true;
+                        var ed = Application.DocumentManager.MdiActiveDocument?.Editor;
+                        ed?.WriteMessage($"\n[ACSE] DimStyle '{targetDimStyle}' not found in drawing or template; skipping.");
+                        return false;
                     }
-                    break;
+                    dim.DimensionStyle = dimStyleId;
+                    dim.RecomputeDimensionBlock(true);
+                    return true;
 
                 case ViolationType.TextFont:
                     string targetFont = vm.CustomFont ?? v.Expected ?? standards.RequiredFont;
@@ -155,37 +202,48 @@ namespace ACSE.AutoCAD2026.Compliance
             return false;
         }
 
+        // ==========================================================================
+        // Per-entity font & size fixes
+        // --------------------------------------------------------------------------
+        // Design note: Font is a property of a TextStyle, not a text entity. Likewise
+        // dimension text height is a property of a DimStyle, not of an individual
+        // dimension. The old implementation "fixed" a single entity by mutating the
+        // shared TextStyle/DimStyle record, which silently changed every other entity
+        // using that style — a huge footgun.
+        //
+        // The new approach: find or create a sibling style that has the required
+        // font/height, then ASSIGN that style to this one entity. Nothing shared is
+        // mutated. If the user wants a drawing-wide change, they should fix the
+        // style itself through the Template Extractor / Style Manager UI.
+        // ==========================================================================
+
         private static bool ApplyFontFix(Transaction tr, Database db, Entity ent, string font, StandardsModel standards)
         {
             try
             {
-                ObjectId styleId = ObjectId.Null;
-
-                if (ent is DBText dbText)
-                    styleId = dbText.TextStyleId;
-                else if (ent is MText mtext)
-                    styleId = mtext.TextStyleId;
-                else if (ent is Dimension dim)
+                // Dimension fonts live on the DimStyle's Dimtxsty, not the dimension
+                // itself. Instead of mutating that TextStyle, swap the dimension to a
+                // DimStyle variant whose text style has the right font.
+                if (ent is Dimension dim)
                 {
-                    var ds = (DimStyleTableRecord)tr.GetObject(dim.DimensionStyle, OpenMode.ForWrite);
-                    styleId = ds.Dimtxsty;
+                    ObjectId newDimStyleId = FindOrCreateDimStyleVariant(
+                        db, tr, dim.DimensionStyle,
+                        requiredTextHeight: null,
+                        requiredFont: font);
+                    if (newDimStyleId.IsNull) return false;
+                    dim.DimensionStyle = newDimStyleId;
+                    dim.RecomputeDimensionBlock(true);
+                    return true;
                 }
 
-                if (styleId.IsNull || !styleId.IsValid) return false;
+                // For regular text entities, swap to a text style that has the required font.
+                ObjectId currentTsId = GetEntityTextStyleId(ent, tr);
+                if (currentTsId.IsNull || !currentTsId.IsValid) return false;
 
-                var ts = (TextStyleTableRecord)tr.GetObject(styleId, OpenMode.ForWrite);
+                ObjectId newTsId = FindOrCreateTextStyleWithFont(db, tr, currentTsId, font);
+                if (newTsId.IsNull || !newTsId.IsValid) return false;
 
-                if (font.EndsWith(".shx", StringComparison.OrdinalIgnoreCase))
-                {
-                    ts.FileName = font;
-                }
-                else
-                {
-                    ts.Font = new Autodesk.AutoCAD.GraphicsInterface.FontDescriptor(
-                        font, false, false, 0, 0);
-                }
-
-                return true;
+                return AssignTextStyleToEntity(ent, tr, newTsId);
             }
             catch
             {
@@ -200,20 +258,39 @@ namespace ACSE.AutoCAD2026.Compliance
                 if (standards.MatchDrawingScale)
                     size *= GetDrawingScale(db);
 
+                // DBText and MText have a true per-instance height — just set it.
                 if (ent is DBText dbText)
                 {
                     dbText.Height = size;
                     return true;
                 }
-                else if (ent is MText mtext)
+                if (ent is MText mtext)
                 {
                     mtext.TextHeight = size;
                     return true;
                 }
-                else if (ent is Dimension dim)
+                if (ent is AttributeReference attRef)
                 {
-                    var ds = (DimStyleTableRecord)tr.GetObject(dim.DimensionStyle, OpenMode.ForWrite);
-                    ds.Dimtxt = size;
+                    attRef.Height = size;
+                    return true;
+                }
+                if (ent is AttributeDefinition attDef)
+                {
+                    attDef.Height = size;
+                    return true;
+                }
+
+                // Dimension text height lives on the DimStyle (DIMTXT). Swap to a
+                // DimStyle variant with the correct height instead of mutating the
+                // shared record.
+                if (ent is Dimension dim)
+                {
+                    ObjectId newDimStyleId = FindOrCreateDimStyleVariant(
+                        db, tr, dim.DimensionStyle,
+                        requiredTextHeight: size,
+                        requiredFont: null);
+                    if (newDimStyleId.IsNull) return false;
+                    dim.DimensionStyle = newDimStyleId;
                     dim.RecomputeDimensionBlock(true);
                     return true;
                 }
@@ -224,6 +301,270 @@ namespace ACSE.AutoCAD2026.Compliance
             {
                 return false;
             }
+        }
+
+        // ---------- helpers for font/size fixes ----------
+
+        /// <summary>
+        /// Returns the current text style ObjectId for a given entity, or Null if
+        /// the entity type doesn't carry a text style directly.
+        /// </summary>
+        private static ObjectId GetEntityTextStyleId(Entity ent, Transaction tr)
+        {
+            switch (ent)
+            {
+                case DBText t: return t.TextStyleId;
+                case MText m: return m.TextStyleId;
+                case AttributeDefinition ad: return ad.TextStyleId;
+                case AttributeReference ar: return ar.TextStyleId;
+                case MLeader ml:
+                    // Prefer the per-instance override; fall back to the MLeaderStyle's text style.
+                    if (!ml.TextStyleId.IsNull && ml.TextStyleId.IsValid)
+                        return ml.TextStyleId;
+                    if (!ml.MLeaderStyle.IsNull && ml.MLeaderStyle.IsValid)
+                    {
+                        try
+                        {
+                            var mls = (MLeaderStyle)tr.GetObject(ml.MLeaderStyle, OpenMode.ForRead);
+                            return mls.TextStyleId;
+                        }
+                        catch { }
+                    }
+                    return ObjectId.Null;
+                default:
+                    return ObjectId.Null;
+            }
+        }
+
+        /// <summary>
+        /// Assigns a text style to an entity that supports per-instance text styles.
+        /// Never mutates the shared TextStyleTableRecord.
+        /// </summary>
+        private static bool AssignTextStyleToEntity(Entity ent, Transaction tr, ObjectId styleId)
+        {
+            switch (ent)
+            {
+                case DBText t: t.TextStyleId = styleId; return true;
+                case MText m: m.TextStyleId = styleId; return true;
+                case AttributeDefinition ad: ad.TextStyleId = styleId; return true;
+                case AttributeReference ar: ar.TextStyleId = styleId; return true;
+                case MLeader ml: ml.TextStyleId = styleId; return true;
+                default: return false;
+            }
+        }
+
+        /// <summary>
+        /// Finds a TextStyle in the current drawing whose font matches <paramref name="font"/>,
+        /// or creates a new one cloned from <paramref name="baseStyleId"/>'s properties. Never
+        /// mutates the caller's base style.
+        /// </summary>
+        private static ObjectId FindOrCreateTextStyleWithFont(
+            Database db, Transaction tr, ObjectId baseStyleId, string font)
+        {
+            // 1) If the current style already matches, keep using it.
+            try
+            {
+                var baseTs = (TextStyleTableRecord)tr.GetObject(baseStyleId, OpenMode.ForRead);
+                if (FontMatches(baseTs, font)) return baseStyleId;
+            }
+            catch { /* fall through */ }
+
+            var tst = (TextStyleTable)tr.GetObject(db.TextStyleTableId, OpenMode.ForRead);
+
+            // 2) Look for any existing style in the drawing with the right font.
+            foreach (ObjectId id in tst)
+            {
+                try
+                {
+                    var ts = (TextStyleTableRecord)tr.GetObject(id, OpenMode.ForRead);
+                    if (FontMatches(ts, font)) return id;
+                }
+                catch { }
+            }
+
+            // 3) Create a new style. Name is derived from base name + sanitized font
+            //    so repeated fixes of the same font share one style instead of
+            //    generating `Style_Arial_2`, `_3`, etc.
+            string baseName = "Style";
+            try
+            {
+                baseName = ((TextStyleTableRecord)tr.GetObject(baseStyleId, OpenMode.ForRead)).Name;
+            }
+            catch { }
+
+            string desiredName = $"ACSE_{SanitizeName(baseName)}_{SanitizeName(System.IO.Path.GetFileNameWithoutExtension(font))}";
+            if (tst.Has(desiredName)) return tst[desiredName];
+
+            try
+            {
+                tst.UpgradeOpen();
+                var newTs = new TextStyleTableRecord { Name = desiredName };
+                if (font.EndsWith(".shx", StringComparison.OrdinalIgnoreCase))
+                {
+                    newTs.FileName = font;
+                }
+                else
+                {
+                    newTs.Font = new Autodesk.AutoCAD.GraphicsInterface.FontDescriptor(
+                        font, false, false, 0, 0);
+                }
+
+                // Copy a few benign properties from the base style so the created
+                // style feels like a variant rather than a blank.
+                try
+                {
+                    var baseTs = (TextStyleTableRecord)tr.GetObject(baseStyleId, OpenMode.ForRead);
+                    newTs.TextSize = baseTs.TextSize;
+                    newTs.XScale = baseTs.XScale;
+                    newTs.ObliquingAngle = baseTs.ObliquingAngle;
+                    newTs.IsVertical = baseTs.IsVertical;
+                    newTs.IsAnnotative = baseTs.IsAnnotative;
+                }
+                catch { }
+
+                ObjectId newId = tst.Add(newTs);
+                tr.AddNewlyCreatedDBObject(newTs, true);
+                return newId;
+            }
+            catch
+            {
+                return ObjectId.Null;
+            }
+        }
+
+        /// <summary>
+        /// Finds a DimStyle in the current drawing matching the requested text height
+        /// and/or text-style font, or creates a clone of <paramref name="baseDimStyleId"/>
+        /// with those properties overridden. Never mutates the caller's base dim style.
+        /// </summary>
+        private static ObjectId FindOrCreateDimStyleVariant(
+            Database db, Transaction tr, ObjectId baseDimStyleId,
+            double? requiredTextHeight, string? requiredFont)
+        {
+            if (baseDimStyleId.IsNull || !baseDimStyleId.IsValid) return ObjectId.Null;
+
+            DimStyleTableRecord? baseDs;
+            try { baseDs = (DimStyleTableRecord)tr.GetObject(baseDimStyleId, OpenMode.ForRead); }
+            catch { return ObjectId.Null; }
+            if (baseDs == null) return ObjectId.Null;
+
+            // 1) If the base already satisfies the request, use it.
+            if (DimStyleMatches(tr, baseDs, requiredTextHeight, requiredFont))
+                return baseDimStyleId;
+
+            var dst = (DimStyleTable)tr.GetObject(db.DimStyleTableId, OpenMode.ForRead);
+
+            // 2) Look for an existing matching dim style in the drawing.
+            foreach (ObjectId id in dst)
+            {
+                if (id == baseDimStyleId) continue;
+                try
+                {
+                    var ds = (DimStyleTableRecord)tr.GetObject(id, OpenMode.ForRead);
+                    if (DimStyleMatches(tr, ds, requiredTextHeight, requiredFont))
+                        return id;
+                }
+                catch { }
+            }
+
+            // 3) Create a variant cloned from the base.
+            string heightTag = requiredTextHeight.HasValue
+                ? $"h{requiredTextHeight.Value.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)}"
+                : "";
+            string fontTag = !string.IsNullOrWhiteSpace(requiredFont)
+                ? SanitizeName(System.IO.Path.GetFileNameWithoutExtension(requiredFont!))
+                : "";
+            string desiredName = $"ACSE_{SanitizeName(baseDs.Name)}_{heightTag}{(heightTag.Length > 0 && fontTag.Length > 0 ? "_" : "")}{fontTag}";
+            if (dst.Has(desiredName)) return dst[desiredName];
+
+            try
+            {
+                dst.UpgradeOpen();
+                var newDs = new DimStyleTableRecord();
+                newDs.CopyFrom(baseDs);
+                newDs.Name = desiredName;
+
+                if (requiredTextHeight.HasValue && requiredTextHeight.Value > 0)
+                    newDs.Dimtxt = requiredTextHeight.Value;
+
+                if (!string.IsNullOrWhiteSpace(requiredFont))
+                {
+                    ObjectId textStyleForDim = FindOrCreateTextStyleWithFont(
+                        db, tr,
+                        !newDs.Dimtxsty.IsNull ? newDs.Dimtxsty : db.Textstyle,
+                        requiredFont);
+                    if (!textStyleForDim.IsNull) newDs.Dimtxsty = textStyleForDim;
+                }
+
+                ObjectId newId = dst.Add(newDs);
+                tr.AddNewlyCreatedDBObject(newDs, true);
+                return newId;
+            }
+            catch
+            {
+                return ObjectId.Null;
+            }
+        }
+
+        private static bool FontMatches(TextStyleTableRecord ts, string font)
+        {
+            if (ts == null || string.IsNullOrWhiteSpace(font)) return false;
+
+            if (font.EndsWith(".shx", StringComparison.OrdinalIgnoreCase))
+            {
+                return !string.IsNullOrEmpty(ts.FileName)
+                    && string.Equals(System.IO.Path.GetFileName(ts.FileName), font,
+                        StringComparison.OrdinalIgnoreCase);
+            }
+
+            // TTF / system font — compare against the FontDescriptor typeface.
+            try
+            {
+                var typeFace = ts.Font?.TypeFace ?? "";
+                return string.Equals(typeFace, font, StringComparison.OrdinalIgnoreCase);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private static bool DimStyleMatches(Transaction tr, DimStyleTableRecord ds,
+            double? requiredTextHeight, string? requiredFont)
+        {
+            if (requiredTextHeight.HasValue && requiredTextHeight.Value > 0)
+            {
+                if (Math.Abs(ds.Dimtxt - requiredTextHeight.Value) > 0.0001)
+                    return false;
+            }
+            if (!string.IsNullOrWhiteSpace(requiredFont))
+            {
+                if (ds.Dimtxsty.IsNull || !ds.Dimtxsty.IsValid) return false;
+                try
+                {
+                    var ts = (TextStyleTableRecord)tr.GetObject(ds.Dimtxsty, OpenMode.ForRead);
+                    if (!FontMatches(ts, requiredFont)) return false;
+                }
+                catch { return false; }
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// Produces a string safe for use in AutoCAD symbol table names: alphanumerics
+        /// plus '-' and '_' only, max ~30 chars.
+        /// </summary>
+        private static string SanitizeName(string input)
+        {
+            if (string.IsNullOrWhiteSpace(input)) return "X";
+            var sb = new System.Text.StringBuilder();
+            foreach (var c in input)
+            {
+                if (char.IsLetterOrDigit(c) || c == '-' || c == '_') sb.Append(c);
+            }
+            if (sb.Length == 0) sb.Append('X');
+            if (sb.Length > 30) sb.Length = 30;
+            return sb.ToString();
         }
 
         private static double GetDrawingScale(Database db)
@@ -238,25 +579,19 @@ namespace ACSE.AutoCAD2026.Compliance
             return 1.0;
         }
 
-        private static ObjectId GetTextStyleId(Database db, Transaction tr, string styleName)
-        {
-            var tst = (TextStyleTable)tr.GetObject(db.TextStyleTableId, OpenMode.ForRead);
-            if (tst.Has(styleName))
-                return tst[styleName];
-            return db.Textstyle;
-        }
-
-        private static ObjectId GetDimStyleId(Database db, Transaction tr, string styleName)
-        {
-            var dst = (DimStyleTable)tr.GetObject(db.DimStyleTableId, OpenMode.ForRead);
-            if (dst.Has(styleName))
-                return dst[styleName];
-            return db.Dimstyle;
-        }
+        // NOTE: GetTextStyleId / GetDimStyleId removed — InteractiveFixEngine never
+        // called them. The apply path uses GetOrImportTextStyleByName and the
+        // dedicated FindOrCreate*Variant helpers instead. Other engines
+        // (FixEngine, SmartFixEngine, GlobalTextModifier) keep their own copies.
 
         private static double? ParseDouble(string? value)
         {
-            if (double.TryParse(value, out double result))
+            // Culture-invariant parse — European locales use comma as decimal
+            // separator. Using the plain overload would fail there or misread values.
+            if (double.TryParse(value,
+                    System.Globalization.NumberStyles.Float,
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    out double result))
                 return result;
             return null;
         }
@@ -319,14 +654,18 @@ namespace ACSE.AutoCAD2026.Compliance
         }
 
         /// <summary>
-        /// Gets common font names from text styles in the drawing.
+        /// Returns fonts actually used by text styles in the drawing. The previous
+        /// implementation sprinkled in a hardcoded list ("Arial", "romans.shx"…),
+        /// which misled users into picking fonts that weren't available on the
+        /// target system. Callers that want a broader list (e.g. installed Windows
+        /// fonts) should enumerate InstalledFontCollection themselves.
         /// </summary>
         public static List<string> GetAvailableFonts(Database db)
         {
-            var fonts = new HashSet<string>();
+            var fonts = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             using var tr = db.TransactionManager.StartTransaction();
             var tst = (TextStyleTable)tr.GetObject(db.TextStyleTableId, OpenMode.ForRead);
-            
+
             foreach (ObjectId id in tst)
             {
                 var ts = (TextStyleTableRecord)tr.GetObject(id, OpenMode.ForRead);
@@ -335,15 +674,8 @@ namespace ACSE.AutoCAD2026.Compliance
                 if (ts.Font != null && !string.IsNullOrEmpty(ts.Font.TypeFace))
                     fonts.Add(ts.Font.TypeFace);
             }
-            
+
             tr.Commit();
-            
-            // Add common standard fonts
-            fonts.Add("romans.shx");
-            fonts.Add("txt.shx");
-            fonts.Add("Arial");
-            fonts.Add("Times New Roman");
-            
             return fonts.ToList();
         }
     }
