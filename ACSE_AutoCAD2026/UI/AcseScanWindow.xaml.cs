@@ -287,16 +287,23 @@ namespace ACSE.AutoCAD2026.UI
                     try
                     {
                         if (!v.AutoFixable) { fail++; continue; }
-                        FixEngine.ApplySingleFix(v);
-                        ok++;
+                        // Pass standards so missing text/dim styles can be imported
+                        // from the template (same behavior as Fix All).
+                        int n = FixEngine.ApplySingleFix(v, _standards);
+                        if (n > 0) ok++;
+                        else       fail++;
                     }
-                    catch
+                    catch (Exception exSingle)
                     {
+                        ed?.WriteMessage($"\n[ACSE] Fix Selected error ({v.Type}, handle={v.EntityHandle}): {exSingle.Message}");
                         fail++;
                     }
                 }
 
                 ed?.WriteMessage($"\nACSE Fix Selected: Fixed={ok}, Failed={fail}");
+
+                // Force a redraw so the user immediately sees the change.
+                doc?.SendStringToExecute("_.REGENALL ", true, false, false);
 
                 // Rescan + refresh
                 _lastScan = EntityScanner.Scan(_standards);
