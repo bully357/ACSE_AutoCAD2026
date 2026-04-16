@@ -1,0 +1,72 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net8.0-windows</TargetFramework>
+		<UseWPF>true</UseWPF>
+		<Nullable>enable</Nullable>
+
+		<PlatformTarget>x64</PlatformTarget>
+		<Platforms>x64</Platforms>
+		<Configurations>Debug;Release</Configurations>
+
+		<!-- CRITICAL: Prevent runtime config but ALLOW dependency copying -->
+		<GenerateRuntimeConfigurationFiles>false</GenerateRuntimeConfigurationFiles>
+		<GenerateDependencyFile>false</GenerateDependencyFile>
+		<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+
+		<ImplicitUsings>disable</ImplicitUsings>
+		<ProduceReferenceAssembly>false</ProduceReferenceAssembly>
+
+		<NoWarn>$(NoWarn);MSB3277;MSB3270</NoWarn>
+	</PropertyGroup>
+
+	<!-- Exclude only problematic/unused files -->
+	<ItemGroup>
+		<Compile Remove="AssemblyLoadLogger.cs" />
+		<Compile Remove="Class1.cs" />
+		<Compile Remove="Commands\MinimalTest.cs" />
+	</ItemGroup>
+
+	<!-- AutoCAD References - DO NOT COPY -->
+	<ItemGroup>
+		<Reference Include="accoremgd">
+			<HintPath>C:\Program Files\Autodesk\AutoCAD 2026\accoremgd.dll</HintPath>
+			<Private>False</Private>
+		</Reference>
+		<Reference Include="acdbmgd">
+			<HintPath>C:\Program Files\Autodesk\AutoCAD 2026\acdbmgd.dll</HintPath>
+			<Private>False</Private>
+		</Reference>
+		<Reference Include="acmgd">
+			<HintPath>C:\Program Files\Autodesk\AutoCAD 2026\acmgd.dll</HintPath>
+			<Private>False</Private>
+		</Reference>
+	</ItemGroup>
+
+	<!-- Explicit package references (if needed) -->
+	<ItemGroup>
+		<!-- System.Text.Json is in .NET 8, but make sure it's referenced -->
+		<PackageReference Include="System.Text.Json" Version="8.0.5" Condition="'$(TargetFramework)' == 'net8.0-windows'" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Compile Update="Properties\Resources.Designer.cs">
+			<DesignTime>True</DesignTime>
+			<AutoGen>True</AutoGen>
+			<DependentUpon>Resources.resx</DependentUpon>
+		</Compile>
+	</ItemGroup>
+
+	<ItemGroup>
+		<EmbeddedResource Update="Properties\Resources.resx">
+			<Generator>ResXFileCodeGenerator</Generator>
+			<LastGenOutput>Resources.Designer.cs</LastGenOutput>
+		</EmbeddedResource>
+	</ItemGroup>
+
+	<!-- Post-build deployment -->
+	<Target Name="PostBuild" AfterTargets="PostBuildEvent" Condition="'$(SolutionDir)' != '' AND '$(SolutionDir)' != '*Undefined*'">
+		<Exec Command="set &quot;BUNDLE=$(SolutionDir)deploy\ACSE.bundle\Contents\Windows&quot;&#xD;&#xA;if not exist &quot;%25BUNDLE%25&quot; mkdir &quot;%25BUNDLE%25&quot;&#xD;&#xA>xcopy /Y /I &quot;$(TargetDir)*.dll&quot; &quot;%25BUNDLE%25\&quot;&#xD;&#xA>xcopy /Y /I &quot;$(TargetDir)*.pdb&quot; &quot;%25BUNDLE%25\&quot;" />
+	</Target>
+
+</Project>

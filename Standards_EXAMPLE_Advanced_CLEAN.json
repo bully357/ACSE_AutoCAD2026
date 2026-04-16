@@ -1,0 +1,60 @@
+{
+  "TemplatePath": "C:\\ACSE\\config\\Standards\\FAA_002_acad.dwt",
+  
+  "RequiredTextStyle": "Standard",
+  "RequiredDimStyle": "002-above-dim-Monospace",
+  "RequiredLinetype": null,
+  
+  "AllowedLayers": [
+    "0",
+    "A-ANNO",
+    "A-DIMS",
+    "A-WALL",
+    "A-TEXT"
+  ],
+  
+  "AllowedLinetypes": [
+    "ByLayer",
+    "Continuous",
+    "ByBlock"
+  ],
+  
+  "ApprovedTextFontFiles": [
+    "romans.shx",
+    "txt.shx"
+  ],
+  
+  "CreateMissingTextStyle": true,
+  
+  "RequiredFont": "romans.shx",
+  "RequiredFontSize": 0.125,
+  "RequireAnnotative": false,
+  "RequiredAnnotativeScale": 0.0,
+  
+  "RequiredDimFont": null,
+  "RequiredDimFontSize": 0.125,
+  
+  "RequiredMLeaderFont": null,
+  "RequiredMLeaderFontSize": 0.125,
+  
+  "MatchDrawingScale": false,
+
+  "RequiredDimStyleName": "ASBUILT",
+  "DimTextHeight": 0.125,
+  "DimArrowSize": 0.125,
+  "DimExtensionLineExtend": 0.125,
+  "DimExtensionLineOffset": 0.0625,
+  "DimArrowBlock": "",
+  "DimAnnotative": true,
+  "DimUnits": 2,
+  "DimDecimals": 2,
+  "DimScaleFactor": 1.0,
+  "DimLineColor": 256,
+  "DimLineWeight": -1,
+  "DimExtLineColor": 256,
+  "DimExtLineWeight": -1,
+  "DimTextColor": 256,
+  "DimTextGap": 0.09,
+  "SetDimStyleAsCurrent": true,
+  "PurgeUnusedDimStyles": false
+}

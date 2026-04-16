@@ -1,0 +1,277 @@
+╔══════════════════════════════════════════════════════════════════╗
+║                                                                  ║
+║     🔧 ACSE COMMANDS NOT SHOWING - TROUBLESHOOTING GUIDE 🔧     ║
+║                                                                  ║
+╚══════════════════════════════════════════════════════════════════╝
+
+═══════════════════════════════════════════════════════════════════
+   ✅ BUILD STATUS: SUCCESS (Just Built!)
+═══════════════════════════════════════════════════════════════════
+
+DLL Location:
+C:\Users\jdbul\source\repos\ACSE_AutoCAD2026\ACSE_AutoCAD2026\bin\Release\net8.0-windows\ACSE.AutoCAD2026.dll
+
+Last Built: 3/17/2026 9:27:39 PM
+Size: 160,256 bytes
+
+
+═══════════════════════════════════════════════════════════════════
+   🎯 EXACT STEPS TO LOAD & TEST COMMANDS
+═══════════════════════════════════════════════════════════════════
+
+STEP 1: START AUTOCAD
+──────────────────────────────────────────────────────────────────
+1. Open AutoCAD 2026
+2. Open ANY drawing (or create new)
+3. DO NOT load the DLL yet
+
+STEP 2: NETLOAD THE DLL
+──────────────────────────────────────────────────────────────────
+In AutoCAD Command Line, type:
+
+  NETLOAD
+
+Press ENTER, then paste this EXACT path:
+
+C:\Users\jdbul\source\repos\ACSE_AutoCAD2026\ACSE_AutoCAD2026\bin\Release\net8.0-windows\ACSE.AutoCAD2026.dll
+
+You should see:
+  "Successfully loaded: C:\Users\...\ACSE.AutoCAD2026.dll"
+
+If you see an error like "File in use" or "Access denied":
+  → AutoCAD is still running with old DLL loaded
+  → Type: QUIT
+  → Wait 10 seconds
+  → Restart AutoCAD
+  → Try NETLOAD again
+
+STEP 3: VERIFY PLUGIN IS LOADED
+──────────────────────────────────────────────────────────────────
+Type this in AutoCAD command line:
+
+  NETLOAD
+
+Then press ENTER. In the file dialog that opens, you should see
+your DLL listed if it's already loaded. Cancel the dialog.
+
+Or check the AutoCAD command line - you should have seen:
+  "[Plugin initialized successfully]" or similar message
+
+STEP 4: TEST THE COMMANDS ONE BY ONE
+──────────────────────────────────────────────────────────────────
+Type each command and press ENTER:
+
+  ✓ ACSE_STANDARDS
+  
+Expected Result:
+  → Window opens with 3 panels
+  → Command line shows feature list
+
+If it works: ✅ SUCCESS!
+If not: ⚠️ Go to troubleshooting section below
+
+Then test the alias:
+
+  ✓ ACSE_CONTROL
+  
+Expected Result:
+  → Same window opens (or activates if already open)
+
+STEP 5: VERIFY OTHER COMMANDS STILL WORK
+──────────────────────────────────────────────────────────────────
+These should also work:
+
+  ✓ ACSE_UI
+  ✓ ACSE_UI_INTERACTIVE
+  ✓ ACSE_GLOBAL_TEXT
+
+
+═══════════════════════════════════════════════════════════════════
+   ⚠️ TROUBLESHOOTING
+═══════════════════════════════════════════════════════════════════
+
+PROBLEM 1: "Unknown command: ACSE_STANDARDS"
+──────────────────────────────────────────────────────────────────
+CAUSE: Commands not registered or wrong DLL loaded
+
+SOLUTIONS:
+  A. Verify DLL is loaded:
+     - Type: NETLOAD
+     - Check if DLL path shows in recent files
+     
+  B. Check AutoCAD version:
+     - This DLL is for AutoCAD 2026
+     - Type: VERSION in AutoCAD
+     - Verify it says "AutoCAD 2026"
+     
+  C. Try loading again:
+     - Type: NETUNLOAD
+     - Browse to your DLL and unload it
+     - Type: NETLOAD
+     - Load the DLL again
+     
+  D. Check command line for errors:
+     - Press F2 to expand command history
+     - Look for any red error messages after NETLOAD
+     - Send me the error message
+
+PROBLEM 2: DLL Loads but No Commands
+──────────────────────────────────────────────────────────────────
+CAUSE: Commands may be registered but not visible
+
+SOLUTIONS:
+  A. Manually verify registration:
+     - Open the file:
+       ACSE_AutoCAD2026\AssemblyInfo.cs
+     - Check for this line:
+       [assembly: CommandClass(typeof(ACSE.AutoCAD2026.Commands.ComplianceCommands))]
+     
+  B. Check if partial class is correct:
+     - Open: ACSE_AutoCAD2026\Commands\UiCommands.cs
+     - First line should be:
+       public partial class ComplianceCommands
+     - NOT: public class UiCommands
+     
+  C. Rebuild with verbose output:
+     - In PowerShell:
+       cd ACSE_AutoCAD2026
+       dotnet build -c Release -v detailed
+     - Look for "CommandMethod" in output
+
+PROBLEM 3: Commands Work for Other Files But Not These
+──────────────────────────────────────────────────────────────────
+CAUSE: File wasn't included in build or compile error
+
+SOLUTIONS:
+  A. Check build output:
+     - Look in: bin\Release\net8.0-windows\
+     - File date should be RECENT (just now)
+     - Size should be ~160KB
+     
+  B. Clean and rebuild:
+     cd ACSE_AutoCAD2026
+     dotnet clean
+     dotnet build -c Release
+     
+  C. Check for compile errors:
+     - Open Output window in Visual Studio
+     - Look for any warnings/errors related to UiCommands.cs
+
+PROBLEM 4: AutoCAD Crashes When Loading
+──────────────────────────────────────────────────────────────────
+CAUSE: Missing dependencies or version mismatch
+
+SOLUTIONS:
+  A. Check .NET version:
+     - You need .NET 8 Runtime
+     - Download: https://dotnet.microsoft.com/download/dotnet/8.0
+     
+  B. Check AutoCAD version:
+     - This DLL is compiled for AutoCAD 2026
+     - Check NuGet references in project file
+     
+  C. Check WPF dependencies:
+     - In project file, verify:
+       <UseWPF>true</UseWPF>
+
+
+═══════════════════════════════════════════════════════════════════
+   🔍 DIAGNOSTIC COMMANDS (Run These in PowerShell)
+═══════════════════════════════════════════════════════════════════
+
+1. VERIFY DLL EXISTS AND IS RECENT:
+──────────────────────────────────────────────────────────────────
+cd C:\Users\jdbul\source\repos\ACSE_AutoCAD2026\ACSE_AutoCAD2026
+Get-ChildItem bin\Release\net8.0-windows\ACSE.AutoCAD2026.dll | Select-Object Name, Length, LastWriteTime
+
+Expected: Should show file modified in last few minutes
+
+2. CHECK IF AUTOCAD IS STILL RUNNING:
+──────────────────────────────────────────────────────────────────
+tasklist | findstr /i "acad.exe"
+
+Expected: Should return NOTHING (no processes)
+
+3. VERIFY COMMAND METHOD ATTRIBUTES:
+──────────────────────────────────────────────────────────────────
+Select-String -Path "Commands\UiCommands.cs" -Pattern "CommandMethod"
+
+Expected: Should show:
+  [CommandMethod("ACSE_STANDARDS")]
+  [CommandMethod("ACSE_CONTROL")]
+
+4. REBUILD AND VERIFY:
+──────────────────────────────────────────────────────────────────
+dotnet clean
+dotnet build -c Release
+
+Expected: "Build succeeded" with 0 errors
+
+
+═══════════════════════════════════════════════════════════════════
+   📋 QUICK REFERENCE CARD
+═══════════════════════════════════════════════════────────════════
+
+DLL PATH (COPY THIS):
+C:\Users\jdbul\source\repos\ACSE_AutoCAD2026\ACSE_AutoCAD2026\bin\Release\net8.0-windows\ACSE.AutoCAD2026.dll
+
+COMMANDS TO TEST:
+  1. ACSE_STANDARDS  ← Main command
+  2. ACSE_CONTROL    ← Alias
+  3. ACSE_UI         ← Original scan window
+  4. ACSE_GLOBAL_TEXT ← Text modifier
+
+LOADING SEQUENCE:
+  1. Open AutoCAD
+  2. NETLOAD → Paste path above
+  3. Press ENTER
+  4. Type: ACSE_STANDARDS
+  5. Press ENTER
+  6. Window should open!
+
+
+═══════════════════════════════════════════════════════════════════
+   🎯 IF COMMANDS STILL DON'T SHOW
+═══════════════════════════════════════════════════════════════════
+
+TELL ME EXACTLY WHAT YOU SEE:
+──────────────────────────────────────────────────────────────────
+1. What happens when you type NETLOAD?
+   → Does it load successfully?
+   → Any error messages?
+
+2. What happens when you type ACSE_STANDARDS?
+   → "Unknown command"?
+   → Different error?
+   → Nothing happens?
+
+3. Do OTHER ACSE commands work?
+   → Try: ACSE_UI
+   → Try: ACSE_SCAN
+   → Try: ACSE_CREATE_TEMPLATE
+
+4. Press F2 in AutoCAD and copy the entire command history
+   → Send me the output
+
+5. In PowerShell, run this and send me output:
+   Select-String -Path "Commands\*.cs" -Pattern "ACSE_STANDARDS"
+
+
+═══════════════════════════════════════════════════════════════════
+
+           🚀 MOST LIKELY SOLUTION 🚀
+
+           The DLL is built and ready!
+           
+           Steps:
+           1. Open AutoCAD 2026
+           2. NETLOAD
+           3. Paste: C:\Users\jdbul\source\repos\ACSE_AutoCAD2026\ACSE_AutoCAD2026\bin\Release\net8.0-windows\ACSE.AutoCAD2026.dll
+           4. Type: ACSE_STANDARDS
+           5. Press ENTER
+           
+           It SHOULD work!
+           
+           If not, tell me EXACTLY what error you see!
+
+═══════════════════════════════════════════════════════════════════

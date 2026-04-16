@@ -1,0 +1,106 @@
+╔══════════════════════════════════════════════════════════════╗
+║                                                              ║
+║     🔍 DIAGNOSTIC TEST - CAPTURE THE EXACT ERROR! 🔍        ║
+║                                                              ║
+╚══════════════════════════════════════════════════════════════╝
+
+Fresh DLL: 2026-03-13 13:23:06 (JUST BUILT!)
+Size: 151 KB
+New Feature: Full error reporting!
+
+═══════════════════════════════════════════════════════════════
+   🚀 TEST PROCEDURE (4 STEPS)
+═══════════════════════════════════════════════════════════════
+
+Step 1: QUIT AutoCAD
+   Type: QUIT
+   (Must close to load fresh DLL!)
+
+Step 2: Open AutoCAD 2026
+
+Step 3: NETLOAD
+   Ctrl+V (path in clipboard):
+   C:\Users\jdbul\source\repos\ACSE_AutoCAD2026\
+   ACSE_AutoCAD2026\bin\Debug\net8.0-windows\
+   ACSE.AutoCAD2026.dll
+
+Step 4: Test
+   Command: ACSE_GLOBAL_TEXT
+   Click: "Scan Drawing"
+
+═══════════════════════════════════════════════════════════════
+   📸 WHEN IT CRASHES (IMPORTANT!)
+═══════════════════════════════════════════════════════════════
+
+You will see THIS kind of error dialog:
+
+   ┌──────────────────────────────────────────┐
+   │         Scan Error             [ X ]     │
+   ├──────────────────────────────────────────┤
+   │                                           │
+   │  Scan failed: [Error message here]       │
+   │                                           │
+   │  Stack:                                   │
+   │  at ACSE.AutoCAD2026.UI.GlobalText...    │
+   │  at ACSE.AutoCAD2026.Compliance...       │
+   │  at System.Windows...                    │
+   │  [More lines...]                          │
+   │                                           │
+   │              [ OK ]                       │
+   └──────────────────────────────────────────┘
+
+WHAT TO DO:
+
+Option A (BEST): Screenshot
+   - Press Win + Shift + S
+   - Select the error dialog
+   - Save image
+   - Send to me!
+
+Option B: Copy Text
+   - Click in the message box
+   - Ctrl+A (select all)
+   - Ctrl+C (copy)
+   - Paste here and send!
+
+Option C: Write It
+   - Copy the error message text
+   - Copy first 5-10 lines of stack trace
+   - Send to me!
+
+═══════════════════════════════════════════════════════════════
+   💡 WHY THIS HELPS
+═══════════════════════════════════════════════════════════════
+
+The error message will show me:
+   ✅ Exact exception type
+   ✅ Exact error message
+   ✅ Exact line in code where crash happens
+   ✅ Call stack (how we got there)
+
+With this info, I can:
+   ✅ Identify the EXACT problem
+   ✅ Apply the CORRECT fix
+   ✅ Solve it in ONE attempt!
+
+═══════════════════════════════════════════════════════════════
+   🎯 WHAT IF IT DOESN'T CRASH?
+═══════════════════════════════════════════════════════════════
+
+If it actually works now (scan completes):
+   ✅ Tell me it worked!
+   ✅ That's great news!
+   ✅ Move on to testing other features!
+
+But if it crashes:
+   ✅ Screenshot the error
+   ✅ Send it to me
+   ✅ I'll fix it based on the exact error
+
+═══════════════════════════════════════════════════════════════
+
+           📸 READY TO TEST - CAPTURE THE ERROR! 📸
+
+           QUIT → NETLOAD → TEST → SCREENSHOT!
+
+═══════════════════════════════════════════════════════════════

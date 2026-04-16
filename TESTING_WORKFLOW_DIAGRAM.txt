@@ -1,0 +1,310 @@
+
+═══════════════════════════════════════════════════════════════
+           🎯 ACSE PLUGIN - TESTING WORKFLOW
+═══════════════════════════════════════════════════════════════
+
+
+                    ┌─────────────────────┐
+                    │                     │
+                    │  START_TESTING.BAT  │ ◄── START HERE
+                    │                     │
+                    └──────────┬──────────┘
+                               │
+                ┌──────────────┴──────────────┐
+                │                             │
+                │   CHOOSE YOUR OPTION:       │
+                │                             │
+                └──────────────┬──────────────┘
+                               │
+         ┌─────────────────────┼─────────────────────┐
+         │                     │                     │
+         ▼                     ▼                     ▼
+    ┌────────┐          ┌──────────┐         ┌──────────┐
+    │ OPTION │          │  OPTION  │         │  OPTION  │
+    │   1    │          │    2     │         │    3     │
+    └────┬───┘          └─────┬────┘         └─────┬────┘
+         │                    │                    │
+         ▼                    ▼                    ▼
+    First Time          Quick Rebuild       Exit Crash Test
+       Setup                                  🔴 CRITICAL!
+
+
+═══════════════════════════════════════════════════════════════
+  OPTION 1: FIRST TIME SETUP (Recommended for fresh start)
+═══════════════════════════════════════════════════════════════
+
+    START
+      │
+      ├─► CLEANUP_ALL_OLD_DLLS.bat
+      │   ├─ Find all ACSE DLLs
+      │   ├─ Show timestamps
+      │   ├─ Confirm deletion
+      │   └─ Delete bin/ and obj/
+      │
+      ├─► REBUILD_AND_TEST.bat
+      │   ├─ Check AutoCAD not running
+      │   ├─ dotnet clean
+      │   ├─ dotnet build
+      │   ├─ Verify fresh DLL
+      │   └─ Show NETLOAD path
+      │
+      ├─► Launch AutoCAD (optional)
+      │
+      └─► DONE
+           │
+           └─► Next: Load plugin in AutoCAD
+               └─► Then: Run Option 3
+
+
+═══════════════════════════════════════════════════════════════
+  OPTION 2: QUICK REBUILD (For code changes)
+═══════════════════════════════════════════════════════════════
+
+    START
+      │
+      └─► REBUILD_AND_TEST.bat
+          ├─ Check AutoCAD not running
+          ├─ dotnet clean
+          ├─ dotnet build
+          ├─ Verify fresh DLL
+          └─► DONE
+
+
+═══════════════════════════════════════════════════════════════
+  OPTION 3: EXIT CRASH TEST 🔴 CRITICAL!
+═══════════════════════════════════════════════════════════════
+
+    Prerequisites:
+    ✓ AutoCAD running
+    ✓ Plugin loaded (NETLOAD complete)
+    
+    START
+      │
+      ├─► Show log file (before test)
+      │   └─ C:\ACSE\acse_debug.log
+      │
+      ├─► User Actions in AutoCAD:
+      │   ├─ Run commands (ACSE_TEST, ACSE_UI, etc.)
+      │   ├─ Close ACSE windows
+      │   └─ File → Exit AutoCAD
+      │       │
+      │       ├─ Terminate() called
+      │       ├─ CloseUi() → Close WPF windows
+      │       ├─ FreeAllGCHandles() → Free pinned instances
+      │       │   ├─ Free ComplianceCommands
+      │       │   ├─ Free TemplateCommands
+      │       │   └─ Free ExtractCommands
+      │       └─ Log "terminated successfully"
+      │
+      ├─► Show log file (after test)
+      │   └─ Check for "Freed GCHandle..." messages
+      │
+      ├─► Open Event Viewer
+      │   └─ Check for .NET Runtime errors
+      │
+      ├─► Collect results:
+      │   ├─ Exit clean? (YES/NO)
+      │   ├─ Cleanup logged? (YES/NO)
+      │   └─ Event errors? (YES/NO)
+      │
+      └─► Show summary:
+          │
+          ├─► ✅ PASS
+          │   └─ Exit clean + cleanup logged + no errors
+          │
+          └─► ❌ FAIL
+              └─ Need investigation
+
+
+═══════════════════════════════════════════════════════════════
+  OPTION 4: CHECK TIMESTAMP (Quick verification)
+═══════════════════════════════════════════════════════════════
+
+    START
+      │
+      └─► CHECK_DLL_TIMESTAMP_NOW.bat
+          ├─ Show DLL file details
+          ├─ Show current time
+          ├─ Compare timestamps
+          └─► Result:
+              ├─ FRESH (within minutes) ✅
+              └─ OLD (rebuild needed) ⚠️
+
+
+═══════════════════════════════════════════════════════════════
+  OPTION 5: VIEW GUIDE (Documentation)
+═══════════════════════════════════════════════════════════════
+
+    START
+      │
+      └─► Open MASTER_TESTING_GUIDE.md
+          └─ Read complete testing workflow
+
+
+═══════════════════════════════════════════════════════════════
+  OPTION 6: VIEW CHECKLIST (Print and track)
+═══════════════════════════════════════════════════════════════
+
+    START
+      │
+      └─► Open FINAL_TEST_CHECKLIST.md
+          └─ Print and fill out during testing
+
+
+═══════════════════════════════════════════════════════════════
+  COMPLETE TESTING WORKFLOW (Recommended)
+═══════════════════════════════════════════════════════════════
+
+    DAY 1 - INITIAL SETUP & CRITICAL TEST
+    ──────────────────────────────────────
+    
+    1. START_TESTING.bat → Option 1 (First Time Setup)
+       └─ Cleanup + Rebuild
+       
+    2. Open AutoCAD
+       └─ NETLOAD the DLL
+       
+    3. START_TESTING.bat → Option 3 (Exit Crash Test)
+       └─ Test + verify
+       
+    4. Result:
+       ├─ PASS → Continue to Day 2
+       └─ FAIL → Fix issues, repeat
+    
+
+    DAY 2 - FULL REGRESSION TESTING
+    ────────────────────────────────
+    
+    5. Print FINAL_TEST_CHECKLIST.md
+    
+    6. Open AutoCAD + NETLOAD plugin
+    
+    7. Work through checklist:
+       ├─ Test 1: Clean load
+       ├─ Test 2: Basic commands
+       ├─ Test 3: Compliance scanning
+       ├─ Test 4: Auto-fix engine
+       ├─ Test 5: WPF UI
+       ├─ Test 6: Exit crash (repeat Day 1 #3)
+       ├─ Test 7: Reload test
+       └─ Test 8: Advanced features
+    
+    8. Document results (PASS/FAIL/NOTES)
+    
+    9. Sign off when complete
+    
+
+    DAY 3 - PRODUCTION VERIFICATION (Optional)
+    ───────────────────────────────────────────
+    
+    10. Test with real customer drawings
+    
+    11. Test template-based scanning
+    
+    12. Test auto-fix on real violations
+    
+    13. Stress test (large drawings)
+    
+    14. Final sign-off
+
+
+═══════════════════════════════════════════════════════════════
+  EXIT CRASH FIX - DETAILED FLOW
+═══════════════════════════════════════════════════════════════
+
+    User clicks File → Exit in AutoCAD
+              │
+              ▼
+    AutoCAD calls AcsePlugin.Terminate()
+              │
+              ├─► Step 1: CloseUi()
+              │   ├─ Check if WPF window exists
+              │   ├─ Close window if visible
+              │   └─ Set window reference to null
+              │
+              ├─► Step 2: FreeAllGCHandles()
+              │   │
+              │   ├─ Reflection: Find ComplianceCommands
+              │   │   ├─ Get _pinnedInstance field
+              │   │   ├─ Get GCHandle value
+              │   │   ├─ Call handle.Free()
+              │   │   └─ Log: "Freed GCHandle for ComplianceCommands"
+              │   │
+              │   ├─ Reflection: Find TemplateCommands
+              │   │   ├─ Get _pinnedInstance field
+              │   │   ├─ Get GCHandle value
+              │   │   ├─ Call handle.Free()
+              │   │   └─ Log: "Freed GCHandle for TemplateCommands"
+              │   │
+              │   └─ Reflection: Find ExtractCommands
+              │       ├─ Get _pinnedInstance field
+              │       ├─ Get GCHandle value
+              │       ├─ Call handle.Free()
+              │       └─ Log: "Freed GCHandle for ExtractCommands"
+              │
+              ├─► Step 3: Unsubscribe events
+              │   └─ DocumentManager.DocumentActivated -= ...
+              │
+              ├─► Step 4: Write unload message
+              │   └─ Editor: "ACSE Plugin unloaded."
+              │
+              └─► Step 5: Final log
+                  └─ Log: "ACSE Plugin terminated successfully"
+                      │
+                      ▼
+              AutoCAD continues shutdown
+                      │
+                      ▼
+              ✅ Exit successful (no crash!)
+
+
+═══════════════════════════════════════════════════════════════
+  KEY FILES & LOCATIONS
+═══════════════════════════════════════════════════════════════
+
+  Testing Scripts (Start here):
+  ┌────────────────────────────────────────────────────────┐
+  │ START_TESTING.bat        ◄── MASTER MENU              │
+  │ CLEANUP_ALL_OLD_DLLS.bat                               │
+  │ REBUILD_AND_TEST.bat                                   │
+  │ TEST_EXIT_CRASH_FIX.bat                                │
+  │ CHECK_DLL_TIMESTAMP_NOW.bat                            │
+  └────────────────────────────────────────────────────────┘
+
+  Documentation (Read for details):
+  ┌────────────────────────────────────────────────────────┐
+  │ START_HERE.txt           ◄── READ FIRST               │
+  │ MASTER_TESTING_GUIDE.md                                │
+  │ FINAL_TEST_CHECKLIST.md  ◄── PRINT THIS               │
+  │ WHERE_WE_LEFT_OFF_FINAL.md                             │
+  │ ALL_WORK_COMPLETE.md     ◄── STATUS REPORT            │
+  └────────────────────────────────────────────────────────┘
+
+  DLL Location:
+  ┌────────────────────────────────────────────────────────┐
+  │ C:\Users\jdbul\source\repos\ACSE_AutoCAD2026\         │
+  │ ACSE_AutoCAD2026\bin\Debug\net8.0-windows\            │
+  │ ACSE.AutoCAD2026.dll                                   │
+  └────────────────────────────────────────────────────────┘
+
+  Log File:
+  ┌────────────────────────────────────────────────────────┐
+  │ C:\ACSE\acse_debug.log   ◄── CHECK AFTER TESTING     │
+  └────────────────────────────────────────────────────────┘
+
+
+═══════════════════════════════════════════════════════════════
+                 🎯 YOU ARE HERE 🎯
+═══════════════════════════════════════════════════════════════
+
+                         [X] Code Complete
+                         [X] Build Successful
+                         [ ] Testing Started ◄── NEXT STEP
+                         [ ] Exit Crash Test Passed
+                         [ ] Full Regression Complete
+                         [ ] Production Ready
+
+
+═══════════════════════════════════════════════════════════════
+            NEXT ACTION: Double-click START_TESTING.BAT
+═══════════════════════════════════════════════════════════════

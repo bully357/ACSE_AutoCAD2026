@@ -1,0 +1,121 @@
+╔══════════════════════════════════════════════════════════════╗
+║                                                              ║
+║           🎯 ACSE PLUGIN - QUICK REFERENCE CARD 🎯          ║
+║                                                              ║
+╚══════════════════════════════════════════════════════════════╝
+
+┌──────────────────────────────────────────────────────────────┐
+│  WHERE YOU ARE NOW                                           │
+└──────────────────────────────────────────────────────────────┘
+
+✅ All code fixes complete
+✅ Build successful
+🎯 Ready for testing
+
+┌──────────────────────────────────────────────────────────────┐
+│  WHAT TO DO NOW (In 5 minutes)                              │
+└──────────────────────────────────────────────────────────────┘
+
+1. Double-click: START_TESTING.bat
+2. Press: 1 (First Time Setup)
+3. Wait for rebuild
+4. Open AutoCAD
+5. NETLOAD the DLL (path will be shown)
+
+┌──────────────────────────────────────────────────────────────┐
+│  PRIORITY #1 TEST (Must pass!)                              │
+└──────────────────────────────────────────────────────────────┘
+
+EXIT CRASH FIX TEST:
+
+1. Plugin loaded in AutoCAD
+2. Run: START_TESTING.bat → Option 3
+3. Run some commands in AutoCAD
+4. Exit AutoCAD
+5. Check: Did it close cleanly? (no crash)
+6. Check: C:\ACSE\acse_debug.log
+   Should contain:
+   ✓ "Freed GCHandle for ComplianceCommands"
+   ✓ "Freed GCHandle for TemplateCommands"
+   ✓ "Freed GCHandle for ExtractCommands"
+   ✓ "ACSE Plugin terminated successfully"
+
+✅ PASS = Continue testing
+❌ FAIL = Report errors
+
+┌──────────────────────────────────────────────────────────────┐
+│  KEY FILES (What each one does)                             │
+└──────────────────────────────────────────────────────────────┘
+
+START_TESTING.bat
+  Your main menu for everything
+
+MASTER_TESTING_GUIDE.md
+  Complete step-by-step instructions
+
+FINAL_TEST_CHECKLIST.md
+  Print this, fill it out during testing
+
+WHERE_WE_LEFT_OFF_FINAL.md
+  Detailed status summary
+
+ALL_WORK_COMPLETE.md
+  What was done today
+
+TESTING_WORKFLOW_DIAGRAM.txt
+  Visual flowcharts
+
+┌──────────────────────────────────────────────────────────────┐
+│  IMPORTANT LOCATIONS                                         │
+└──────────────────────────────────────────────────────────────┘
+
+DLL:
+C:\Users\jdbul\source\repos\ACSE_AutoCAD2026\
+ACSE_AutoCAD2026\bin\Debug\net8.0-windows\
+ACSE.AutoCAD2026.dll
+
+Log:
+C:\ACSE\acse_debug.log
+
+┌──────────────────────────────────────────────────────────────┐
+│  COMMON ISSUES & FIXES                                       │
+└──────────────────────────────────────────────────────────────┘
+
+Problem: AutoCAD crashes on exit
+Fix: Check log file, verify GCHandle cleanup messages
+
+Problem: Old DLL keeps loading
+Fix: Run CLEANUP_ALL_OLD_DLLS.bat
+
+Problem: Build fails "file in use"
+Fix: Close AutoCAD, wait 5 seconds, rebuild
+
+Problem: Command not found
+Fix: Verify fresh DLL, check timestamp
+
+┌──────────────────────────────────────────────────────────────┐
+│  TESTING CHECKLIST (High Level)                             │
+└──────────────────────────────────────────────────────────────┘
+
+□ Run START_TESTING.bat → Option 1
+□ NETLOAD in AutoCAD
+□ Run START_TESTING.bat → Option 3 (Exit crash test)
+□ Complete FINAL_TEST_CHECKLIST.md
+□ Sign off when all critical tests pass
+
+┌──────────────────────────────────────────────────────────────┐
+│  WHAT'S FIXED                                                │
+└──────────────────────────────────────────────────────────────┘
+
+✅ eDuplicateKey error
+✅ Delegate GC crashes
+✅ Exit crash (code complete, needs verification)
+✅ All 13 commands
+✅ Interactive WPF UI
+✅ Advanced standards (MTEXT/DBTEXT/Dimensions)
+
+═══════════════════════════════════════════════════════════════
+
+              🚀 START: Double-click START_TESTING.BAT
+
+═══════════════════════════════════════════════════════════════

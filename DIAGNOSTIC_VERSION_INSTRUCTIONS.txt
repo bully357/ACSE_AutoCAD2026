@@ -1,0 +1,94 @@
+╔══════════════════════════════════════════════════════════════╗
+║                                                              ║
+║        🔍 DIAGNOSTIC VERSION - FIND THE CRASH! 🔍           ║
+║                                                              ║
+╚══════════════════════════════════════════════════════════════╝
+
+DLL: 2026-03-13 15:00:32 (FRESH!)
+Features: Comprehensive logging + Null safety
+
+═══════════════════════════════════════════════════════════════
+   🎯 WHAT TO DO
+═══════════════════════════════════════════════════════════════
+
+Step 1: QUIT AutoCAD
+   Type: QUIT
+
+Step 2: Open AutoCAD 2026
+
+Step 3: NETLOAD (Ctrl+V - path in clipboard)
+   C:\Users\jdbul\source\repos\ACSE_AutoCAD2026\
+   ACSE_AutoCAD2026\bin\Debug\net8.0-windows\
+   ACSE.AutoCAD2026.dll
+
+Step 4: ACSE_GLOBAL_TEXT
+   Window opens
+
+Step 5: Click "Scan Drawing"
+   Watch the AutoCAD command line!
+
+═══════════════════════════════════════════════════════════════
+   📋 WHAT YOU'LL SEE IN COMMAND LINE
+═══════════════════════════════════════════════════════════════
+
+You should see messages like:
+
+   [DEBUG] Starting UI update...
+   [DEBUG] Clearing collection...
+   [DEBUG] Processing 25 results...
+   [DEBUG] Added 10 entities...
+   [DEBUG] Added 20 entities...
+   [DEBUG] Successfully added 25 entities
+   [DEBUG] Updating UI text blocks...
+   [DEBUG] UI update complete!
+
+If it crashes, the LAST message tells us where!
+
+═══════════════════════════════════════════════════════════════
+   📸 WHAT I NEED FROM YOU
+═══════════════════════════════════════════════════════════════
+
+After you click "Scan Drawing":
+
+Option 1 (BEST): Copy Command Line Output
+   - Press F2 in AutoCAD (opens text window)
+   - Scroll to find the [DEBUG] messages
+   - Select and copy them
+   - Send to me!
+
+Option 2: Tell Me Last Message
+   - What was the LAST [DEBUG] message you saw?
+   - Example: "I saw 'Added 10 entities' then crash"
+
+Option 3: Screenshot
+   - Screenshot the AutoCAD command line area
+   - Send to me!
+
+═══════════════════════════════════════════════════════════════
+   🎯 WHY THIS WILL HELP
+═══════════════════════════════════════════════════════════════
+
+The [DEBUG] messages will show EXACTLY where it crashes:
+
+Stops after "Starting UI update"
+   → Crashes on collection clear
+
+Stops after "Processing X results"
+   → Crashes before adding entities
+
+Stops at "Added 10 entities"
+   → Crashes on 11th entity (entity #11 is bad!)
+
+Stops after "Successfully added"
+   → Crashes updating text blocks
+
+Sees "UI update complete!"
+   → Scan actually worked! Check if window shows results!
+
+═══════════════════════════════════════════════════════════════
+
+    PATH IN CLIPBOARD - CTRL+V TO LOAD!
+    
+    WATCH COMMAND LINE - COPY OUTPUT - SEND TO ME!
+
+═══════════════════════════════════════════════════════════════

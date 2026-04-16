@@ -1,0 +1,118 @@
+╔══════════════════════════════════════════════════════════════╗
+║  🎯 NETLOAD THIS EXACT PATH - COPY AND PASTE IT! 🎯         ║
+╚══════════════════════════════════════════════════════════════╝
+
+CRITICAL: Visual Studio builds to TWO locations.
+You MUST use the PRIMARY build output, NOT the deploy copy!
+
+┌──────────────────────────────────────────────────────────────┐
+│  ✅ CORRECT PATH - USE THIS ONE!                             │
+└──────────────────────────────────────────────────────────────┘
+
+C:\Users\jdbul\source\repos\ACSE_AutoCAD2026\ACSE_AutoCAD2026\bin\Debug\net8.0-windows\ACSE.AutoCAD2026.dll
+
+Copy the line above ↑ and paste it into AutoCAD NETLOAD dialog.
+
+┌──────────────────────────────────────────────────────────────┐
+│  ❌ WRONG PATH - DO NOT USE!                                 │
+└──────────────────────────────────────────────────────────────┘
+
+C:\Users\jdbul\source\repos\ACSE_AutoCAD2026\deploy\ACSE.bundle\Contents\Windows\ACSE.AutoCAD2026.dll
+
+This is a COPY made by post-build event. It might be OLD/CACHED!
+
+┌──────────────────────────────────────────────────────────────┐
+│  🔍 HOW TO VERIFY YOU'RE USING THE CORRECT DLL               │
+└──────────────────────────────────────────────────────────────┘
+
+After loading, run ACSE_UI and check the debug output:
+
+CORRECT DLL will show:
+  [DEBUG] ACSE_UI command started
+  [DEBUG] Dispatcher initialized: True          ← THIS LINE IS KEY!
+  [DEBUG] No Application.Current found - creating new instance...
+  [DEBUG] WPF Application created with OnExplicitShutdown mode
+  [DEBUG] WPF context initialized
+  [DEBUG] Creating new AcseScanWindow...
+
+OLD DLL will show:
+  [DEBUG] ACSE_UI command started
+  [DEBUG] WPF context initialized               ← MISSING DISPATCHER LINE!
+  [DEBUG] Creating new AcseScanWindow...
+
+If you see "Dispatcher initialized: True", you have the RIGHT DLL!
+
+┌──────────────────────────────────────────────────────────────┐
+│  📝 EXACT STEPS TO LOAD                                      │
+└──────────────────────────────────────────────────────────────┘
+
+1. Close AutoCAD completely
+
+2. Restart AutoCAD
+
+3. Type: NETLOAD
+
+4. In the file dialog, paste this path into the "File name" box:
+   C:\Users\jdbul\source\repos\ACSE_AutoCAD2026\ACSE_AutoCAD2026\bin\Debug\net8.0-windows\ACSE.AutoCAD2026.dll
+
+5. Press Enter or click Open
+
+6. Open/create a drawing (to activate plugin)
+
+7. Type: ACSE_UI
+
+8. CHECK THE OUTPUT - you should see "Dispatcher initialized: True"
+
+9. If you see it, close the window and type ACSE_UI again - it should work!
+
+┌──────────────────────────────────────────────────────────────┐
+│  🛠️ WHY TWO LOCATIONS?                                       │
+└──────────────────────────────────────────────────────────────┘
+
+Your project has a POST-BUILD EVENT (in ACSE.AutoCAD2026.csproj lines 68-70):
+
+<Target Name="PostBuild" AfterTargets="PostBuildEvent">
+  <Exec Command="xcopy /Y /I &quot;$(TargetDir)*.dll&quot; &quot;BUNDLE&quot;" />
+</Target>
+
+This COPIES the DLL to deploy\ folder after building.
+
+The problem:
+  - Sometimes the copy fails silently
+  - Sometimes Windows caches the old DLL in deploy\
+  - The deploy\ DLL might be from an OLD build
+
+Always use bin\Debug\net8.0-windows\ for testing!
+
+┌──────────────────────────────────────────────────────────────┐
+│  🧪 FINAL VERIFICATION                                       │
+└──────────────────────────────────────────────────────────────┘
+
+After loading the CORRECT DLL:
+
+First ACSE_UI run output:
+  [DEBUG] ACSE_UI command started
+  [DEBUG] Dispatcher initialized: True
+  [DEBUG] No Application.Current found - creating new instance...
+  [DEBUG] WPF Application created with OnExplicitShutdown mode
+  [DEBUG] WPF context initialized
+  [DEBUG] Creating new AcseScanWindow...
+  [DEBUG] ACSE Compliance Scanner UI shown.
+
+Result: Window opens ✅
+
+Second ACSE_UI run output (after closing window):
+  [DEBUG] ACSE_UI command started
+  [DEBUG] Dispatcher initialized: True
+  [DEBUG] Application.Current exists - reusing it
+  [DEBUG] WPF context initialized
+  [DEBUG] Creating new AcseScanWindow...
+  [DEBUG] ACSE Compliance Scanner UI shown.
+
+Result: Window opens again, NO CRASH ✅
+
+If you see this, the fix is working!
+
+╔══════════════════════════════════════════════════════════════╗
+║   Copy the path above and NETLOAD it! Report the output!    ║
+╚══════════════════════════════════════════════════════════════╝

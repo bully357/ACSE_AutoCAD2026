@@ -1,0 +1,20 @@
+{
+  "RequiredLinetype": null,
+  "RequiredTextStyle": "STANDARD",
+  "RequiredDimStyle": "ASBUILT",
+  "AllowedLinetypes": [
+    "ByLayer",
+    "Continuous",
+    "ByBlock"
+  ],
+  "AllowedLayers": [
+    "A-ANNO",
+    "A-DIMS",
+    "A-WALL",
+    "A-TEXT"
+  ],
+  "LayerNamePrefix": "",
+  "LayerMap": {},
+  "ApprovedTextFontFiles": ["romans.shx"],
+  "CreateMissingTextStyle": false
+}

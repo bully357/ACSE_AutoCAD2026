@@ -1,0 +1,327 @@
+╔══════════════════════════════════════════════════════════════════╗
+║                                                                  ║
+║          🎯 ACSE STANDARDS CONTROL PANEL - COMMANDS             ║
+║               Complete Command Reference Guide                   ║
+║                                                                  ║
+╚══════════════════════════════════════════════════════════════════╝
+
+═══════════════════════════════════════════════════════════════════
+   📋 AVAILABLE COMMANDS
+═══════════════════════════════════════════════════════════════════
+
+✅ PRIMARY COMMAND:
+──────────────────────────────────────────────────────────────────
+Command:     ACSE_STANDARDS
+Alias:       ACSE_CONTROL
+Description: Opens the unified ACSE Standards Control Panel with
+             Smart Auto-Fix and confidence scoring
+
+Features:
+  • 🎯 Smart Auto-Fix with Confidence Scoring (90%+)
+  • 📊 Real-time Violations DataGrid
+  • 🛡️ Apply Safe Fixes Only
+  • ⚡ Apply Recommended Fixes
+  • 🔍 Filter & Search violations
+  • ☑ Select All / Deselect All
+  • 📊 Export to CSV
+  • ✏️ Manual property editing
+  • 🔄 Auto-rescan after fixes
+
+
+✅ ALTERNATIVE COMMANDS:
+──────────────────────────────────────────────────────────────────
+Command:     ACSE_UI
+Description: Opens the original scan window (simpler interface)
+
+Command:     ACSE_UI_INTERACTIVE
+Description: Opens interactive scanner with customization options
+
+Command:     ACSE_GLOBAL_TEXT
+Description: Opens global text modifier (batch text editing)
+
+
+═══════════════════════════════════════════════════════════════════
+   🚀 HOW TO USE ACSE_STANDARDS
+═══════════════════════════════════════════════════════════════════
+
+STEP 1: LOAD STANDARDS
+──────────────────────────────────────────────────────────────────
+1. Type: ACSE_STANDARDS
+2. Click: "📁 Load Standards" button
+3. Browse to your standards JSON file
+4. Example: Standards_EXAMPLE_CustomScoring.json
+
+STEP 2: SCAN DRAWING
+──────────────────────────────────────────────────────────────────
+1. Click: "🔍 Scan Drawing" button
+2. Wait for scan to complete (progress bar shown)
+3. Review violations in DataGrid
+
+STEP 3: REVIEW VIOLATIONS
+──────────────────────────────────────────────────────────────────
+DataGrid Columns:
+  ☑ Fix         - Check to select for fixing
+  📋 Type       - Violation type (Layer, Text, Dim, etc.)
+  🔧 Entity     - Entity type (DBText, MText, Dimension)
+  📂 Layer      - Current layer name
+  📝 Issue      - Description of the problem
+  🎯 Confidence - AI confidence score (0-100%)
+  🛡️ Safety     - Safe / Recommended / Manual Review
+  📊 Current    - Current value
+  ✅ Expected   - Expected value from standards
+
+Summary Panel (Left):
+  • Total Violations
+  • Total Entities Scanned
+  • Breakdown by type
+  • Safety Ratings (Safe/Recommended/Manual)
+  • Selection count
+
+STEP 4: APPLY FIXES (3 OPTIONS)
+──────────────────────────────────────────────────────────────────
+🛡️ OPTION A: Apply Safe Fixes Only
+   - Click: "🛡️ Apply Safe Fixes Only" button
+   - Applies ONLY violations with 90%+ confidence
+   - Safest option for as-built work
+   - Skips everything else
+
+⚡ OPTION B: Apply Recommended Fixes
+   - Click: "⚡ Apply Recommended Fixes" button
+   - Applies Safe + Recommended (70%+ confidence)
+   - Skips only "Manual Review" items
+   - More aggressive, still safe
+
+🚀 OPTION C: Apply Selected Fixes
+   - Check specific violations manually
+   - Click: "🚀 Apply Selected Fixes" button
+   - Full control over what gets fixed
+
+STEP 5: VERIFY RESULTS
+──────────────────────────────────────────────────────────────────
+1. Click: "🔄 Rescan Drawing" button
+2. Verify remaining violations
+3. Repeat as needed
+
+
+═══════════════════════════════════════════════════════════════════
+   🔧 ADVANCED FEATURES
+═══════════════════════════════════════════════════════════════════
+
+FILTER & SEARCH
+──────────────────────────────────────────────────────────────────
+1. Type in filter box (top-left)
+2. Searches across:
+   - Violation type
+   - Entity name
+   - Layer name
+   - Issue description
+   - Current/Expected values
+3. Case-insensitive
+4. Real-time filtering
+
+Examples:
+  "text"      → Shows only text violations
+  "A-ANNO"    → Shows violations on that layer
+  "style"     → Shows all style-related issues
+  "95%"       → Shows high-confidence fixes
+
+SELECT ALL / DESELECT ALL
+──────────────────────────────────────────────────────────────────
+☑ Select All    - Checks all visible violations
+☐ Deselect All  - Unchecks all violations
+
+EXPORT TO CSV
+──────────────────────────────────────────────────────────────────
+1. Click: "📊 Export CSV" button
+2. Choose save location
+3. Auto-generates filename: ACSE_Violations_YYYYMMDD_HHMMSS.csv
+4. Includes all violation details
+5. Excel-compatible format
+
+MANUAL PROPERTY EDITOR (Right Panel)
+──────────────────────────────────────────────────────────────────
+1. Select violations in grid
+2. Choose properties in right panel:
+   - Layer
+   - Color
+   - Linetype
+   - Text Style
+   - Text Height
+   - Annotative (checkbox)
+3. Click: "Apply to Selected" button
+4. Changes applied immediately
+
+
+═══════════════════════════════════════════════════════════════════
+   📊 CONFIDENCE SCORING EXPLAINED
+═══════════════════════════════════════════════════════════════════
+
+SCORING FACTORS:
+──────────────────────────────────────────────────────────────────
+Factor                 Weight    What It Does
+─────────────────────────────────────────────────────────────────
+LayerCriticality       30%       Layer fixes = highest priority
+DimStyleReliability    25%       Dimension styles very reliable
+TextConsistency        20%       Text style fixes generally safe
+FrequencyBonus         15%       Common violations = higher score
+SideEffectRisk         10%       Penalty for risky operations
+
+CONFIDENCE RANGES:
+──────────────────────────────────────────────────────────────────
+90-100%  →  🛡️ Safe           (Green)  - Very safe to auto-fix
+70-89%   →  ⚡ Recommended    (Orange) - Review recommended
+0-69%    →  ⚠️ Manual Review   (Red)    - User must decide
+
+EXAMPLE BREAKDOWN:
+──────────────────────────────────────────────────────────────────
+Violation: Text style on DBText (appears 8 times)
+
+LayerCriticality:      0.95 × 0.30 = 0.285  ✓
+DimStyleReliability:   0.92 × 0.25 = 0.230  ✓
+TextConsistency:       0.88 × 0.20 = 0.176  ✓✓ (applies!)
+FrequencyBonus:        1.00 × 0.15 = 0.150  ✓✓ (8 occurrences)
+SideEffectRisk:        0.70 × 0.10 = 0.070  ✓
+──────────────────────────────────────────────────────────────────
+Total Confidence: 91.1% → Safe ✅
+
+
+═══════════════════════════════════════════════════════════════════
+   ⚠️ IMPORTANT NOTES
+═══════════════════════════════════════════════════════════════════
+
+BEFORE FIRST USE:
+──────────────────────────────────────────────────────────────────
+1. Close AutoCAD completely (QUIT)
+2. Rebuild DLL:
+   cd C:\Users\jdbul\source\repos\ACSE_AutoCAD2026\ACSE_AutoCAD2026
+   dotnet build -c Release
+3. Restart AutoCAD
+4. NETLOAD: bin\Release\net8.0-windows\ACSE.AutoCAD2026.dll
+5. Test command: ACSE_STANDARDS
+
+DLL LOCATION:
+──────────────────────────────────────────────────────────────────
+Release: bin\Release\net8.0-windows\ACSE.AutoCAD2026.dll
+Debug:   bin\Debug\net8.0-windows\ACSE.AutoCAD2026.dll
+
+REBUILD WORKFLOW:
+──────────────────────────────────────────────────────────────────
+1. QUIT AutoCAD (releases DLL lock)
+2. Rebuild project
+3. Restart AutoCAD
+4. NETLOAD new DLL
+5. Test commands
+
+
+═══════════════════════════════════════════════════════════════════
+   🎯 RECOMMENDED WORKFLOW FOR AS-BUILT WORK
+═══════════════════════════════════════════════════════════════════
+
+ULTRA-SAFE MODE (Recommended):
+──────────────────────────────────────────────────────────────────
+1. ACSE_STANDARDS
+2. Load Standards
+3. Scan Drawing
+4. Click "🛡️ Apply Safe Fixes Only" (90%+ confidence)
+5. Review remaining violations manually
+6. Rescan to verify
+7. Export CSV for records
+
+AGGRESSIVE MODE (Faster):
+──────────────────────────────────────────────────────────────────
+1. ACSE_STANDARDS
+2. Load Standards
+3. Scan Drawing
+4. Click "⚡ Apply Recommended Fixes" (70%+ confidence)
+5. Review Manual Review items only
+6. Rescan to verify
+7. Export CSV for records
+
+SELECTIVE MODE (Full Control):
+──────────────────────────────────────────────────────────────────
+1. ACSE_STANDARDS
+2. Load Standards
+3. Scan Drawing
+4. Filter violations (e.g., "text")
+5. Select All visible
+6. Click "🚀 Apply Selected Fixes"
+7. Repeat for other types
+8. Export CSV for records
+
+
+═══════════════════════════════════════════════════════════════════
+   📞 TROUBLESHOOTING
+═══════════════════════════════════════════════════════════════════
+
+COMMAND NOT FOUND:
+──────────────────────────────────────────────────────────────────
+- Ensure DLL is loaded (NETLOAD)
+- Check AssemblyInfo.cs has CommandClass registered
+- Rebuild project
+- Restart AutoCAD
+
+WINDOW DOESN'T OPEN:
+──────────────────────────────────────────────────────────────────
+- Check AutoCAD command line for error messages
+- Ensure .NET 8 is installed
+- Verify WPF dependencies
+- Check file permissions
+
+NO VIOLATIONS FOUND:
+──────────────────────────────────────────────────────────────────
+- Verify standards JSON is loaded correctly
+- Check standards file has valid rules
+- Ensure drawing has entities to scan
+- Check Model Space + Paper Space
+
+FIXES DON'T APPLY:
+──────────────────────────────────────────────────────────────────
+- Ensure violations are checked (☑)
+- Check entities aren't locked or on locked layers
+- Verify expected values exist in drawing (styles, layers)
+- Check command line for error messages
+
+
+═══════════════════════════════════════════════════════════════════
+   📋 STANDARDS.JSON CONFIGURATION
+═══════════════════════════════════════════════════════════════════
+
+CUSTOM SCORING FACTORS:
+──────────────────────────────────────────────────────────────────
+See: Standards_EXAMPLE_CustomScoring.json
+
+Example:
+{
+  "CustomScoringFactors": [
+    {
+      "Name": "LayerCriticality",
+      "Weight": 0.32,
+      "BaseValue": 0.96,
+      "Condition": "Layer",
+      "Description": "Layer violations are critical"
+    }
+  ]
+}
+
+Weights should sum to ~1.0 for best results.
+
+
+═══════════════════════════════════════════════════════════════════
+
+           ✅ BUILD SUCCESSFUL - READY TO TEST! ✅
+
+           Commands Available:
+           • ACSE_STANDARDS  (main command)
+           • ACSE_CONTROL    (alias)
+           • ACSE_UI
+           • ACSE_UI_INTERACTIVE
+           • ACSE_GLOBAL_TEXT
+
+           Next Steps:
+           1. Close AutoCAD (QUIT)
+           2. Tell me "AutoCAD closed"
+           3. Restart AutoCAD
+           4. NETLOAD the DLL
+           5. Test ACSE_STANDARDS command
+
+═══════════════════════════════════════════════════════════════════

@@ -1,0 +1,115 @@
+<Window x:Class="ACSE.AutoCAD2026.UI.InteractiveScanWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="ACSE - Interactive Compliance Scanner"
+        Height="750" Width="1400"
+        WindowStartupLocation="CenterScreen">
+    <DockPanel Margin="10">
+
+        <!-- Top command bar -->
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,10">
+            <TextBlock VerticalAlignment="Center" Text="Template:" Margin="0,0,8,0" FontWeight="Bold"/>
+            <TextBox x:Name="TemplatePathTextBox" Width="400" Margin="0,0,8,0"
+                     Text="C:\ACSE\config\Standards\FAA_002_acad.dwt"/>
+            <Button x:Name="ScanButton" Content="Scan" Width="100" Margin="0,0,8,0" Click="ScanButton_Click" 
+                    Background="#2196F3" Foreground="White" FontWeight="Bold"/>
+            <ToggleButton x:Name="InteractiveModeToggle" Content="Interactive Mode" Width="130" Margin="0,0,8,0"
+                          IsChecked="True" ToolTip="Enable review/customize before fixing"/>
+            <Button x:Name="RescanButton" Content="Rescan" Width="90" Click="RescanButton_Click"/>
+        </StackPanel>
+
+        <!-- Summary -->
+        <Border DockPanel.Dock="Top" BorderThickness="1" BorderBrush="Gray" Padding="10" Margin="0,0,0,10" Background="#F5F5F5">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="Drawing:" FontWeight="Bold"/>
+                    <TextBlock x:Name="DrawingTextBlock" TextWrapping="Wrap"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1">
+                    <TextBlock Text="Violations:" FontWeight="Bold"/>
+                    <TextBlock x:Name="TotalsTextBlock"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="2">
+                    <TextBlock Text="Selected:" FontWeight="Bold"/>
+                    <TextBlock x:Name="SelectedCountTextBlock" Text="0"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="3">
+                    <TextBlock Text="Score:" FontWeight="Bold" FontSize="14"/>
+                    <TextBlock x:Name="ScoreTextBlock" FontSize="20" FontWeight="Bold"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Filter & Selection bar -->
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,5">
+            <TextBlock Text="Filter:" VerticalAlignment="Center" Margin="0,0,8,0"/>
+            <CheckBox x:Name="ShowTextStyleCheckBox" Content="TextStyle" IsChecked="True" Margin="0,0,10,0" 
+                      Checked="Filter_Changed" Unchecked="Filter_Changed"/>
+            <CheckBox x:Name="ShowDimStyleCheckBox" Content="DimStyle" IsChecked="True" Margin="0,0,10,0"
+                      Checked="Filter_Changed" Unchecked="Filter_Changed"/>
+            <CheckBox x:Name="ShowLayerCheckBox" Content="Layer" IsChecked="True" Margin="0,0,10,0"
+                      Checked="Filter_Changed" Unchecked="Filter_Changed"/>
+            <CheckBox x:Name="ShowLinetypeCheckBox" Content="Linetype" IsChecked="True" Margin="0,0,10,0"
+                      Checked="Filter_Changed" Unchecked="Filter_Changed"/>
+            
+            <Separator Margin="10,0" Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
+            
+            <Button Content="Select All" Width="80" Margin="0,0,5,0" Click="SelectAll_Click"/>
+            <Button Content="Select None" Width="80" Margin="0,0,5,0" Click="SelectNone_Click"/>
+            <Button Content="Invert" Width="60" Click="InvertSelection_Click"/>
+        </StackPanel>
+
+        <!-- Interactive DataGrid with customization columns -->
+        <DataGrid x:Name="ViolationsGrid"
+                  AutoGenerateColumns="False"
+                  CanUserAddRows="False"
+                  SelectionMode="Extended"
+                  AlternatingRowBackground="#F0F0F0"
+                  SelectionChanged="ViolationsGrid_SelectionChanged">
+            <DataGrid.Columns>
+                <!-- Selection checkbox -->
+                <DataGridCheckBoxColumn Header="Fix?" Binding="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}" Width="50"/>
+                
+                <!-- Violation info -->
+                <DataGridTextColumn Header="Rule" Binding="{Binding RuleId}" Width="70" IsReadOnly="True"/>
+                <DataGridTextColumn Header="Type" Binding="{Binding Type}" Width="80" IsReadOnly="True"/>
+                <DataGridTextColumn Header="Entity" Binding="{Binding EntityName}" Width="90" IsReadOnly="True"/>
+                <DataGridTextColumn Header="Layer" Binding="{Binding Layer}" Width="120" IsReadOnly="True"/>
+                
+                <!-- Current value -->
+                <DataGridTextColumn Header="Current" Binding="{Binding Actual}" Width="120" IsReadOnly="True"/>
+                
+                <!-- Customizable fix value (simple text input) -->
+                <DataGridTextColumn Header="Fix To" Width="150" Binding="{Binding Expected}" IsReadOnly="False"/>
+                
+                <!-- Standard expected value -->
+                <DataGridTextColumn Header="Standard" Binding="{Binding Expected}" Width="120" IsReadOnly="True"/>
+                
+                <!-- Message -->
+                <DataGridTextColumn Header="Message" Binding="{Binding Message}" Width="*" IsReadOnly="True"/>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <!-- Bottom action bar -->
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+            <Button Content="Preview Selected" Width="130" Margin="0,0,8,0" Click="PreviewSelected_Click"
+                    Background="#9C27B0" Foreground="White" ToolTip="Highlight entities that will be fixed"/>
+            <Button Content="Fix Selected" Width="110" Margin="0,0,8,0" Click="FixSelected_Click"
+                    Background="#4CAF50" Foreground="White" FontWeight="Bold"/>
+            <Button Content="Fix All Auto-Fixable" Width="140" Margin="0,0,8,0" Click="FixAllButton_Click"
+                    Background="#FF9800" Foreground="White"/>
+            <Button Content="Close" Width="90" Click="Close_Click"/>
+        </StackPanel>
+
+    </DockPanel>
+</Window>

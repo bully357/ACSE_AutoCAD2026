@@ -1,0 +1,76 @@
+╔══════════════════════════════════════════════════════════════╗
+║                                                              ║
+║     🔍 STEP-BY-STEP DIAGNOSTIC - FIND THE CRASH! 🔍        ║
+║                                                              ║
+╚══════════════════════════════════════════════════════════════╝
+
+FILE: ACSE.AutoCAD2026.DIAGNOSTIC.dll
+TIME: 15:27:13
+PATH IN CLIPBOARD!
+
+═══════════════════════════════════════════════════════════════
+   📋 WHAT YOU'LL SEE
+═══════════════════════════════════════════════════════════════
+
+When you click "Scan Drawing", you'll see MessageBoxes:
+
+   Step 1: "Scan button clicked!"
+   Step 2: "Application.Idle fired!"
+   Step 3: "About to call ScanTextEntities()..."
+   Step 4: "Scan returned X results!"
+   Step 5: "Inside Dispatcher.Invoke!"
+   Step 6: "Collection cleared!"
+   Step 7: "Added X items!"
+   Step 8: "SUCCESS!"
+
+Click OK on each MessageBox to proceed.
+
+═══════════════════════════════════════════════════════════════
+   🚀 TEST PROCEDURE
+═══════════════════════════════════════════════════════════════
+
+1. QUIT AutoCAD
+   Type: QUIT
+
+2. Open AutoCAD 2026
+
+3. NETLOAD (Ctrl+V)
+   C:\Users\jdbul\source\repos\ACSE_AutoCAD2026\
+   ACSE_AutoCAD2026\bin\Debug\net8.0-windows\
+   ACSE.AutoCAD2026.DIAGNOSTIC.dll
+
+4. ACSE_GLOBAL_TEXT
+   Window opens
+
+5. Click "Scan Drawing"
+   MessageBoxes start appearing!
+
+6. Click OK on each MessageBox
+
+7. Note which step was LAST before crash
+   (or if you see all 8 steps!)
+
+═══════════════════════════════════════════════════════════════
+   📸 TELL ME
+═══════════════════════════════════════════════════════════════
+
+What was the LAST step you saw?
+
+Examples:
+
+"I saw Step 1, Step 2, Step 3, then crashed"
+   → Crash is during scan
+
+"I saw up to Step 6, then crashed"
+   → Crash is when adding items
+
+"I saw all 8 steps!"
+   → IT WORKS!
+
+═══════════════════════════════════════════════════════════════
+
+     PATH IN CLIPBOARD - CTRL+V!
+     CLICK OK ON EACH MESSAGEBOX!
+     TELL ME LAST STEP NUMBER!
+
+═══════════════════════════════════════════════════════════════

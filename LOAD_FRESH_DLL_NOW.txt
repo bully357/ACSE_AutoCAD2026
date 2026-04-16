@@ -1,0 +1,108 @@
+╔══════════════════════════════════════════════════════════════╗
+║  ✅ FRESH DLL BUILT - LOAD THIS NOW! ✅                     ║
+╚══════════════════════════════════════════════════════════════╝
+
+Build completed successfully!
+The DLL has been rebuilt with the ACSE_UI fix.
+
+┌──────────────────────────────────────────────────────────────┐
+│  📁 EXACT PATH TO LOAD                                       │
+└──────────────────────────────────────────────────────────────┘
+
+C:\Users\jdbul\source\repos\ACSE_AutoCAD2026\ACSE_AutoCAD2026\bin\Debug\net8.0-windows\ACSE.AutoCAD2026.dll
+
+Copy this path ↑ exactly
+
+┌──────────────────────────────────────────────────────────────┐
+│  📝 STEP-BY-STEP INSTRUCTIONS                                │
+└──────────────────────────────────────────────────────────────┘
+
+1. Start AutoCAD
+
+2. Type: NETLOAD
+
+3. Paste the path above into the "File name" box
+
+4. Press Enter
+
+5. You should see:
+   ========================================
+   *** ACSE AutoCAD 2026 Plugin Loaded ***
+   ========================================
+   Commands available:
+   ...
+
+6. Open or create a drawing
+
+7. Type: ACSE_UI
+
+8. CHECK THE OUTPUT - You MUST see these lines:
+   [DEBUG] ACSE_UI command started
+   [DEBUG] Dispatcher initialized: True          ← KEY LINE!
+   [DEBUG] No Application.Current found - creating new instance...
+   [DEBUG] WPF Application created with OnExplicitShutdown mode
+   [DEBUG] WPF context initialized
+   [DEBUG] Creating new AcseScanWindow...
+   [DEBUG] ACSE Compliance Scanner UI shown.
+
+9. Window should open ✅
+
+10. CLOSE the window
+
+11. Type: ACSE_UI again
+
+12. CHECK THE OUTPUT - You MUST see:
+    [DEBUG] ACSE_UI command started
+    [DEBUG] Dispatcher initialized: True         ← KEY LINE!
+    [DEBUG] Application.Current exists - reusing it  ← DIFFERENT!
+    [DEBUG] WPF context initialized
+    [DEBUG] Creating new AcseScanWindow...
+    [DEBUG] ACSE Compliance Scanner UI shown.
+
+13. Window should open again - NO CRASH! ✅
+
+┌──────────────────────────────────────────────────────────────┐
+│  🔍 VERIFICATION CHECKLIST                                   │
+└──────────────────────────────────────────────────────────────┘
+
+After first ACSE_UI:
+  [ ] Saw "Dispatcher initialized: True"
+  [ ] Saw "No Application.Current found"
+  [ ] Saw "WPF Application created"
+  [ ] Window opened
+  [ ] No errors
+
+After second ACSE_UI (window closed):
+  [ ] Saw "Dispatcher initialized: True"
+  [ ] Saw "Application.Current exists - reusing it"
+  [ ] Window opened AGAIN
+  [ ] NO CRASH!
+  [ ] NO "Cannot create more than one Application instance" error
+
+┌──────────────────────────────────────────────────────────────┐
+│  ⚠️ IF IT STILL FAILS                                        │
+└──────────────────────────────────────────────────────────────┘
+
+If you STILL don't see "Dispatcher initialized: True":
+  → You're loading a different DLL
+  → Double-check the path in NETLOAD dialog
+  → Look at the EXACT path AutoCAD shows after you select the file
+  → Copy/paste that path here so I can verify
+
+If you see "Dispatcher initialized" but still get the error:
+  → There's a different issue
+  → Copy/paste the COMPLETE error message including stack trace
+
+┌──────────────────────────────────────────────────────────────┐
+│  🎯 EXPECTED SUCCESS                                         │
+└──────────────────────────────────────────────────────────────┘
+
+✅ First run: Creates Application instance
+✅ Second run: Reuses Application instance
+✅ Third run: Reuses Application instance
+✅ Can run ACSE_UI unlimited times without crash
+✅ Can close and reopen window as many times as needed
+
+╔══════════════════════════════════════════════════════════════╗
+║    GO TEST IT NOW! REPORT THE DEBUG OUTPUT! 🚀              ║
+╚══════════════════════════════════════════════════════════════╝

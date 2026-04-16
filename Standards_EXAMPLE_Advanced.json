@@ -1,0 +1,71 @@
+{
+  "TemplatePath": "C:\\ACSE\\config\\Standards\\FAA_002_acad.dwt",
+  
+  "RequiredTextStyle": "Standard",
+  "RequiredDimStyle": "002-above-dim-Monospace",
+  "RequiredLinetype": null,
+  
+  "AllowedLayers": [
+    "0",
+    "A-ANNO",
+    "A-DIMS",
+    "A-WALL",
+    "A-TEXT"
+  ],
+  
+  "AllowedLinetypes": [
+    "ByLayer",
+    "Continuous",
+    "ByBlock"
+  ],
+  
+  "ApprovedTextFontFiles": [
+    "romans.shx",
+    "txt.shx"
+  ],
+  
+  "CreateMissingTextStyle": true,
+  
+  "_comment1": "===== ADVANCED ENTITY CORRECTION SETTINGS =====",
+  
+  "RequiredFont": "romans.shx",
+  "RequiredFontSize": 0.125,
+  "RequireAnnotative": false,
+  "RequiredAnnotativeScale": 0.0,
+  
+  "RequiredDimFont": null,
+  "RequiredDimFontSize": 0.125,
+  
+  "RequiredMLeaderFont": null,
+  "RequiredMLeaderFontSize": 0.125,
+  
+  "MatchDrawingScale": false,
+
+  "_comment2": "Set MatchDrawingScale=true to multiply text sizes by CANNOSCALE",
+  "_comment3": "Set RequiredAnnotativeScale=0 to match current drawing scale",
+
+  "_comment4": "===== DIMENSION STYLE MANAGEMENT SETTINGS =====",
+
+  "RequiredDimStyleName": "ASBUILT",
+  "DimTextHeight": 0.125,
+  "DimArrowSize": 0.125,
+  "DimExtensionLineExtend": 0.125,
+  "DimExtensionLineOffset": 0.0625,
+  "DimArrowBlock": "",
+  "DimAnnotative": true,
+  "DimUnits": 2,
+  "DimDecimals": 2,
+  "DimScaleFactor": 1.0,
+  "DimLineColor": 256,
+  "DimLineWeight": -1,
+  "DimExtLineColor": 256,
+  "DimExtLineWeight": -1,
+  "DimTextColor": 256,
+  "DimTextGap": 0.09,
+  "SetDimStyleAsCurrent": true,
+  "PurgeUnusedDimStyles": false,
+
+  "_comment5": "DimArrowBlock: '' = Closed filled, 'ArchTick', 'DotSmall', etc.",
+  "_comment6": "DimUnits: 2=Decimal, 4=Architectural, 5=Fractional",
+  "_comment7": "Colors/Weights: 256=ByLayer, -1=ByLayer, 0=ByBlock, 7=White"
+}

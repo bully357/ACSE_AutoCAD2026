@@ -1,0 +1,152 @@
+╔══════════════════════════════════════════════════════════════╗
+║                                                              ║
+║   🎯 NEW FEATURE: GLOBAL TEXT PROPERTY MODIFIER 🎯          ║
+║                                                              ║
+╚══════════════════════════════════════════════════════════════╝
+
+COMMAND: ACSE_GLOBAL_TEXT
+
+═══════════════════════════════════════════════════════════════
+   🚀 QUICK START
+═══════════════════════════════════════════════════════════════
+
+1. Type: ACSE_GLOBAL_TEXT
+2. Click "Scan Drawing"
+3. Select entities to modify
+4. Check properties to change
+5. Set new values
+6. Click "Apply Changes"
+
+═══════════════════════════════════════════════════════════════
+   📋 WHAT IT DOES
+═══════════════════════════════════════════════════════════════
+
+Globally modify text/mtext properties:
+
+✅ Text Style       ✅ Rotation
+✅ Height           ✅ Width Factor
+✅ Annotative       ✅ Justification (DBText)
+✅ Layer            ✅ Attachment (MText)
+
+═══════════════════════════════════════════════════════════════
+   🔍 FILTER OPTIONS
+═══════════════════════════════════════════════════════════════
+
+Find specific text before modifying:
+
+• Text Style (e.g., "Arial")
+• Layer (e.g., "Text")
+• Font File (e.g., "romans")
+• Height Range (Min/Max)
+• Annotative Only (Yes/No)
+
+═══════════════════════════════════════════════════════════════
+   💡 COMMON TASKS
+═══════════════════════════════════════════════════════════════
+
+Change Text Style:
+   1. Filter: Text Style = "Arial"
+   2. Scan
+   3. Select All
+   4. Modify: Text Style = "Romans"
+   5. Apply
+
+Make Text Annotative:
+   1. Filter: Layer = "Dimensions"
+   2. Scan
+   3. Select All
+   4. Modify: Annotative = Yes
+   5. Apply
+
+Fix Text Height:
+   1. Filter: Max Height = 0.08
+   2. Scan
+   3. Select All
+   4. Modify: Height = 0.125
+   5. Apply
+
+Move to New Layer:
+   1. Filter: Layer = "OldLayer"
+   2. Scan
+   3. Select All
+   4. Modify: Layer = "NewLayer"
+   5. Apply
+
+═══════════════════════════════════════════════════════════════
+   ⚠️ IMPORTANT TIPS
+═══════════════════════════════════════════════════════════════
+
+✅ Save your drawing first (QSAVE)
+✅ Use filters to target specific text
+✅ Preview before applying
+✅ Use UNDO to revert if needed
+✅ Only checked properties change
+✅ Unchecked properties stay same
+
+═══════════════════════════════════════════════════════════════
+   🎯 EXAMPLES
+═══════════════════════════════════════════════════════════════
+
+Example 1: Standardize Text
+   All text with "Arial" → "Romans", Height 0.125
+
+Example 2: Make Annotative
+   All text on "Dimensions" layer → Annotative = Yes
+
+Example 3: Fix Small Text
+   All text < 0.08 height → 0.125 height
+
+Example 4: Layer Cleanup
+   All text on "Layer1" → "Text" layer
+
+Example 5: Rotate Text
+   All vertical text (90°) → Horizontal (0°)
+
+═══════════════════════════════════════════════════════════════
+   📁 WHERE TO FIND IT
+═══════════════════════════════════════════════════════════════
+
+Command Line:
+   ACSE_GLOBAL_TEXT
+
+Welcome Message:
+   Listed in available commands after NETLOAD
+
+Documentation:
+   GLOBAL_TEXT_MODIFIER_GUIDE.md (complete guide)
+   THIS FILE (quick reference)
+
+═══════════════════════════════════════════════════════════════
+   🏗️ HOW TO REBUILD
+═══════════════════════════════════════════════════════════════
+
+Already built and ready! If you need to rebuild:
+
+1. Close AutoCAD
+2. Run: REBUILD_AFTER_CLOSING_AUTOCAD.bat
+3. Open AutoCAD
+4. NETLOAD the fresh DLL
+5. Test: ACSE_GLOBAL_TEXT
+
+═══════════════════════════════════════════════════════════════
+   🎊 FEATURE COMPLETE
+═══════════════════════════════════════════════════════════════
+
+Status: ✅ READY TO USE
+Build: ✅ COMPILED
+Testing: ⏳ READY FOR YOUR TEST
+
+Files Added:
+   ✅ GlobalTextModifier.cs (backend logic)
+   ✅ GlobalTextModifierWindow.xaml (UI design)
+   ✅ GlobalTextModifierWindow.xaml.cs (UI code)
+   ✅ UiCommands.cs (command added)
+   ✅ AcsePlugin.cs (welcome message updated)
+   ✅ GLOBAL_TEXT_MODIFIER_GUIDE.md (full guide)
+   ✅ THIS FILE (quick reference)
+
+═══════════════════════════════════════════════════════════════
+
+          🚀 READY TO TEST - LAUNCH AUTOCAD!
+
+═══════════════════════════════════════════════════════════════

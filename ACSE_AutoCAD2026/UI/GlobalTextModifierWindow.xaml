@@ -1,0 +1,297 @@
+<Window x:Class="ACSE.AutoCAD2026.UI.GlobalTextModifierWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="ACSE - Global Text Property Modifier"
+        Height="700" Width="900"
+        WindowStartupLocation="CenterScreen"
+        Background="#F5F5F5">
+
+    <Window.Resources>
+        <Style TargetType="GroupBox">
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="Padding" Value="10"/>
+            <Setter Property="BorderBrush" Value="#2196F3"/>
+            <Setter Property="BorderThickness" Value="2"/>
+        </Style>
+        <Style TargetType="Button">
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="Padding" Value="10,5"/>
+            <Setter Property="MinWidth" Value="100"/>
+        </Style>
+        <Style TargetType="ComboBox">
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="MinWidth" Value="150"/>
+        </Style>
+        <Style TargetType="TextBox">
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="MinWidth" Value="100"/>
+        </Style>
+        <Style TargetType="CheckBox">
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Background="#2196F3" Margin="-10,-10,-10,10">
+            <TextBlock Text="Global Text/MText Property Modifier" 
+                      FontSize="18" FontWeight="Bold" 
+                      Foreground="White" Padding="15"/>
+            <TextBlock Text="Scan, filter, and modify text properties across the entire drawing" 
+                      FontSize="12" Foreground="White" 
+                      Padding="15,0,15,15"/>
+        </StackPanel>
+
+        <!-- Main Content -->
+        <TabControl Grid.Row="1" Margin="0,5">
+            
+            <!-- Tab 1: Filter & Scan -->
+            <TabItem Header="1. Filter &amp; Scan">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="10">
+                        
+                        <!-- Filter Section -->
+                        <GroupBox Header="Filter Criteria (Find text with these properties)">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <!-- Row 1 -->
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Text Style:" VerticalAlignment="Center" Margin="5"/>
+                                <ComboBox Grid.Row="0" Grid.Column="1" x:Name="FilterTextStyleComboBox" IsEditable="True"/>
+                                
+                                <TextBlock Grid.Row="0" Grid.Column="2" Text="Layer:" VerticalAlignment="Center" Margin="5"/>
+                                <ComboBox Grid.Row="0" Grid.Column="3" x:Name="FilterLayerComboBox" IsEditable="True"/>
+
+                                <!-- Row 2 -->
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Font File:" VerticalAlignment="Center" Margin="5"/>
+                                <TextBox Grid.Row="1" Grid.Column="1" x:Name="FilterFontTextBox" />
+                                
+                                <CheckBox Grid.Row="1" Grid.Column="2" x:Name="FilterAnnotativeCheckBox" Content="Annotative Only" 
+                                         IsThreeState="True" IsChecked="{x:Null}"/>
+
+                                <!-- Row 3 -->
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="Height Range:" VerticalAlignment="Center" Margin="5"/>
+                                <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal">
+                                    <TextBlock Text="Min:" VerticalAlignment="Center" Margin="5,0"/>
+                                    <TextBox x:Name="FilterMinHeightTextBox" Width="80"/>
+                                    <TextBlock Text="Max:" VerticalAlignment="Center" Margin="10,0,5,0"/>
+                                    <TextBox x:Name="FilterMaxHeightTextBox" Width="80"/>
+                                </StackPanel>
+
+                                <!-- Row 4 -->
+                                <Button Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" 
+                                       Content="Clear Filters" Click="ClearFilters_Click" 
+                                       HorizontalAlignment="Left"/>
+                            </Grid>
+                        </GroupBox>
+
+                        <!-- Scan Button -->
+                        <Button Content="🔍 Scan Drawing" FontSize="14" FontWeight="Bold" 
+                               Background="#4CAF50" Foreground="White" 
+                               Click="ScanButton_Click" Height="40" Margin="5,10"/>
+
+                        <!-- Results Section -->
+                        <GroupBox Header="Scan Results">
+                            <StackPanel>
+                                <TextBlock x:Name="ResultsSummaryTextBlock" 
+                                          Text="Click 'Scan Drawing' to find text entities" 
+                                          FontWeight="Bold" Margin="5"/>
+                                
+                                <DataGrid x:Name="ResultsDataGrid" 
+                                         AutoGenerateColumns="False" 
+                                         Height="250" 
+                                         IsReadOnly="True"
+                                         SelectionMode="Extended"
+                                         SelectionChanged="ResultsDataGrid_SelectionChanged">
+                                    <DataGrid.Columns>
+                                        <DataGridCheckBoxColumn Header="Select" Binding="{Binding IsSelected}" Width="50"/>
+                                        <DataGridTextColumn Header="Type" Binding="{Binding EntityType}" Width="70"/>
+                                        <DataGridTextColumn Header="Text Style" Binding="{Binding TextStyle}" Width="100"/>
+                                        <DataGridTextColumn Header="Layer" Binding="{Binding Layer}" Width="100"/>
+                                        <DataGridTextColumn Header="Height" Binding="{Binding Height, StringFormat=F3}" Width="70"/>
+                                        <DataGridTextColumn Header="Rotation" Binding="{Binding Rotation, StringFormat=F1}" Width="70"/>
+                                        <DataGridTextColumn Header="Width Factor" Binding="{Binding WidthFactor, StringFormat=F2}" Width="90"/>
+                                        <DataGridCheckBoxColumn Header="Annot" Binding="{Binding IsAnnotative, Mode=OneWay}" Width="50"/>
+                                        <DataGridTextColumn Header="Text Preview" Binding="{Binding TextString}" Width="*"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+
+                                <StackPanel Orientation="Horizontal" Margin="5">
+                                    <Button Content="Select All" Click="SelectAll_Click"/>
+                                    <Button Content="Select None" Click="SelectNone_Click"/>
+                                    <Button Content="Invert Selection" Click="InvertSelection_Click"/>
+                                    <TextBlock x:Name="SelectionCountTextBlock" 
+                                              Text="0 selected" 
+                                              VerticalAlignment="Center" 
+                                              Margin="20,0,0,0" 
+                                              FontWeight="Bold"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </GroupBox>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- Tab 2: Modify Properties -->
+            <TabItem Header="2. Modify Properties">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="10">
+                        <TextBlock Text="Set new property values (leave blank to keep current)" 
+                                  FontStyle="Italic" Margin="5" Foreground="Gray"/>
+
+                        <GroupBox Header="Text Properties">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <!-- Row 1 -->
+                                <CheckBox Grid.Row="0" Grid.Column="0" x:Name="ChangeTextStyleCheckBox" Content="Text Style:" />
+                                <ComboBox Grid.Row="0" Grid.Column="1" x:Name="NewTextStyleComboBox" IsEnabled="{Binding IsChecked, ElementName=ChangeTextStyleCheckBox}"/>
+                                
+                                <CheckBox Grid.Row="0" Grid.Column="2" x:Name="ChangeLayerCheckBox" Content="Layer:" />
+                                <ComboBox Grid.Row="0" Grid.Column="3" x:Name="NewLayerComboBox" IsEnabled="{Binding IsChecked, ElementName=ChangeLayerCheckBox}"/>
+
+                                <!-- Row 2 -->
+                                <CheckBox Grid.Row="1" Grid.Column="0" x:Name="ChangeHeightCheckBox" Content="Height:" />
+                                <TextBox Grid.Row="1" Grid.Column="1" x:Name="NewHeightTextBox" IsEnabled="{Binding IsChecked, ElementName=ChangeHeightCheckBox}"/>
+                                
+                                <CheckBox Grid.Row="1" Grid.Column="2" x:Name="ChangeRotationCheckBox" Content="Rotation (°):" />
+                                <TextBox Grid.Row="1" Grid.Column="3" x:Name="NewRotationTextBox" IsEnabled="{Binding IsChecked, ElementName=ChangeRotationCheckBox}"/>
+
+                                <!-- Row 3 -->
+                                <CheckBox Grid.Row="2" Grid.Column="0" x:Name="ChangeWidthFactorCheckBox" Content="Width Factor:" />
+                                <TextBox Grid.Row="2" Grid.Column="1" x:Name="NewWidthFactorTextBox" IsEnabled="{Binding IsChecked, ElementName=ChangeWidthFactorCheckBox}"/>
+                                
+                                <CheckBox Grid.Row="2" Grid.Column="2" x:Name="ChangeAnnotativeCheckBox" Content="Annotative:" />
+                                <ComboBox Grid.Row="2" Grid.Column="3" x:Name="NewAnnotativeComboBox" IsEnabled="{Binding IsChecked, ElementName=ChangeAnnotativeCheckBox}">
+                                    <ComboBoxItem Content="Yes" Tag="True"/>
+                                    <ComboBoxItem Content="No" Tag="False"/>
+                                </ComboBox>
+
+                                <!-- Row 4: DBText Justification -->
+                                <CheckBox Grid.Row="3" Grid.Column="0" x:Name="ChangeJustificationCheckBox" Content="Justification (DBText):" />
+                                <StackPanel Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="3" Orientation="Horizontal">
+                                    <ComboBox x:Name="NewHorizontalModeComboBox" Width="150" Margin="5" IsEnabled="{Binding IsChecked, ElementName=ChangeJustificationCheckBox}">
+                                        <ComboBoxItem Content="Left" Tag="TextHorizontalMode.TextLeft"/>
+                                        <ComboBoxItem Content="Center" Tag="TextHorizontalMode.TextCenter"/>
+                                        <ComboBoxItem Content="Right" Tag="TextHorizontalMode.TextRight"/>
+                                        <ComboBoxItem Content="Aligned" Tag="TextHorizontalMode.TextAlign"/>
+                                        <ComboBoxItem Content="Middle" Tag="TextHorizontalMode.TextMid"/>
+                                        <ComboBoxItem Content="Fit" Tag="TextHorizontalMode.TextFit"/>
+                                    </ComboBox>
+                                    <TextBlock Text="Vertical:" VerticalAlignment="Center" Margin="10,0,5,0"/>
+                                    <ComboBox x:Name="NewVerticalModeComboBox" Width="120" Margin="5" IsEnabled="{Binding IsChecked, ElementName=ChangeJustificationCheckBox}">
+                                        <ComboBoxItem Content="Baseline" Tag="TextVerticalMode.TextBase"/>
+                                        <ComboBoxItem Content="Bottom" Tag="TextVerticalMode.TextBottom"/>
+                                        <ComboBoxItem Content="Middle" Tag="TextVerticalMode.TextVerticalMid"/>
+                                        <ComboBoxItem Content="Top" Tag="TextVerticalMode.TextTop"/>
+                                    </ComboBox>
+                                </StackPanel>
+
+                                <!-- Row 5: MText Attachment -->
+                                <CheckBox Grid.Row="4" Grid.Column="0" x:Name="ChangeAttachmentCheckBox" Content="Attachment (MText):" />
+                                <ComboBox Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="3" x:Name="NewAttachmentComboBox" IsEnabled="{Binding IsChecked, ElementName=ChangeAttachmentCheckBox}">
+                                    <ComboBoxItem Content="Top Left" Tag="AttachmentPoint.TopLeft"/>
+                                    <ComboBoxItem Content="Top Center" Tag="AttachmentPoint.TopCenter"/>
+                                    <ComboBoxItem Content="Top Right" Tag="AttachmentPoint.TopRight"/>
+                                    <ComboBoxItem Content="Middle Left" Tag="AttachmentPoint.MiddleLeft"/>
+                                    <ComboBoxItem Content="Middle Center" Tag="AttachmentPoint.MiddleCenter"/>
+                                    <ComboBoxItem Content="Middle Right" Tag="AttachmentPoint.MiddleRight"/>
+                                    <ComboBoxItem Content="Bottom Left" Tag="AttachmentPoint.BottomLeft"/>
+                                    <ComboBoxItem Content="Bottom Center" Tag="AttachmentPoint.BottomCenter"/>
+                                    <ComboBoxItem Content="Bottom Right" Tag="AttachmentPoint.BottomRight"/>
+                                </ComboBox>
+                            </Grid>
+                        </GroupBox>
+
+                        <GroupBox Header="Preview Changes" Margin="0,10,0,0">
+                            <StackPanel>
+                                <TextBlock x:Name="PreviewTextBlock" 
+                                          TextWrapping="Wrap" 
+                                          Margin="5" 
+                                          Text="Select text entities and modify properties above, then click 'Preview' to see what will change."/>
+                                
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Content="👁️ Preview Changes" Click="PreviewButton_Click" Background="#FF9800" Foreground="White"/>
+                                    <Button Content="✅ Apply Changes" Click="ApplyButton_Click" Background="#4CAF50" Foreground="White"/>
+                                    <Button Content="Reset Modifications" Click="ResetModifications_Click"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </GroupBox>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- Tab 3: Help -->
+            <TabItem Header="Help">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="20">
+                        <TextBlock FontSize="16" FontWeight="Bold" Text="How to Use Global Text Modifier" Margin="0,0,0,10"/>
+                        
+                        <TextBlock FontWeight="Bold" Text="Step 1: Filter &amp; Scan" Margin="0,10,0,5"/>
+                        <TextBlock TextWrapping="Wrap" Text="• Set filter criteria to find specific text (optional - leave blank to find all)" Margin="20,0,0,3"/>
+                        <TextBlock TextWrapping="Wrap" Text="• Click 'Scan Drawing' to find text/mtext entities" Margin="20,0,0,3"/>
+                        <TextBlock TextWrapping="Wrap" Text="• Review results in the grid and select entities to modify" Margin="20,0,0,3"/>
+                        
+                        <TextBlock FontWeight="Bold" Text="Step 2: Modify Properties" Margin="0,10,0,5"/>
+                        <TextBlock TextWrapping="Wrap" Text="• Check the properties you want to change" Margin="20,0,0,3"/>
+                        <TextBlock TextWrapping="Wrap" Text="• Set new values for checked properties" Margin="20,0,0,3"/>
+                        <TextBlock TextWrapping="Wrap" Text="• Click 'Preview Changes' to see what will happen (no changes made)" Margin="20,0,0,3"/>
+                        <TextBlock TextWrapping="Wrap" Text="• Click 'Apply Changes' to modify the selected entities" Margin="20,0,0,3"/>
+                        
+                        <TextBlock FontWeight="Bold" Text="Tips:" Margin="0,10,0,5"/>
+                        <TextBlock TextWrapping="Wrap" Text="• Use filters to find text with specific properties (e.g., all text with 'Arial' style)" Margin="20,0,0,3"/>
+                        <TextBlock TextWrapping="Wrap" Text="• Leave filter fields blank to scan ALL text/mtext in the drawing" Margin="20,0,0,3"/>
+                        <TextBlock TextWrapping="Wrap" Text="• Only checked properties will be modified - unchecked properties remain unchanged" Margin="20,0,0,3"/>
+                        <TextBlock TextWrapping="Wrap" Text="• Preview before applying to verify changes" Margin="20,0,0,3"/>
+                        <TextBlock TextWrapping="Wrap" Text="• Use AutoCAD's UNDO command to revert changes if needed" Margin="20,0,0,3"/>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+        </TabControl>
+
+        <!-- Status Bar -->
+        <Border Grid.Row="2" Background="#E0E0E0" Padding="10,5" Margin="0,5">
+            <StackPanel>
+                <TextBlock x:Name="StatusTextBlock" Text="Ready" FontWeight="Bold"/>
+                <TextBlock x:Name="StatusDetailTextBlock" Text="" FontSize="10" Foreground="Gray"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Bottom Buttons -->
+        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,5,0,0">
+            <Button Content="Rescan" Click="ScanButton_Click"/>
+            <Button Content="Close" Click="Close_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>

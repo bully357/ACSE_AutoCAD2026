@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "ACSE.AutoCAD2026": {
+      "commandName": "Project"
+    },
+    "Profile 1": {
+      "commandName": "Executable",
+      "executablePath": "C:\\Program Files\\Autodesk\\AutoCAD 2026\\acad.exe",
+      "commandLineArgs": "{\r\n  \"profiles\": {\r\n    \"AutoCAD 2026\": {\r\n      \"commandName\": \"Executable\",\r\n      \"executablePath\": \"C:\\\\Program Files\\\\Autodesk\\\\AutoCAD 2026\\\\acad.exe\",\r\n      \"workingDirectory\": \"C:\\\\Program Files\\\\Autodesk\\\\AutoCAD 2026\\\\\"\r\n    }\r\n  }\r\n}"
+    }
+  }
+}

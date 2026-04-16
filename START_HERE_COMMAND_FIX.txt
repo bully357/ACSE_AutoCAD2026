@@ -1,0 +1,128 @@
+╔══════════════════════════════════════════════════════════════╗
+║             EMERGENCY: COMMAND NOT WORKING                   ║
+║              FOLLOW THESE EXACT STEPS                        ║
+╚══════════════════════════════════════════════════════════════╝
+
+STEP 1: VERIFY DLL HAS THE COMMAND
+==========================================
+1. Double-click: VERIFY_DLL.bat (in this folder)
+2. Look for "Commands found in DLL:"
+3. Look for "ACSE_UI_INTERACTIVE" in the list
+
+   → If ACSE_UI_INTERACTIVE is in the list: GO TO STEP 2
+   → If ACSE_UI_INTERACTIVE is NOT in the list: GO TO STEP 3
+
+STEP 2: DLL IS GOOD - RELOAD IN AUTOCAD
+==========================================
+The command exists, AutoCAD just needs to load the new DLL.
+
+1. CLOSE AutoCAD completely
+   - Close all AutoCAD windows
+   - Check Task Manager for acad.exe
+   - End any AutoCAD processes
+
+2. START AutoCAD 2026
+   - Launch fresh instance
+   - Open any DWG or create new drawing
+
+3. LOAD THE DLL
+   Type: NETLOAD
+   Press: Enter
+   
+   In the dialog, paste this path:
+   C:\Users\jdbul\source\repos\ACSE_AutoCAD2026\ACSE_AutoCAD2026\bin\Debug\net8.0-windows\ACSE.AutoCAD2026.dll
+   
+   (Path is copied to clipboard by VERIFY_DLL.bat)
+   
+   Click: Open
+   
+   Wait for: "ACSE AutoCAD Plugin initialized successfully!"
+
+4. TEST THE COMMAND
+   Type: ACSE_UI_INTERACTIVE
+   Press: Enter
+   
+   → Window should open!
+   
+   If command still "unknown":
+   - Type: ACSE_ (with underscore)
+   - Press: TAB key
+   - Cycle through commands
+   - Look for ACSE_UI_INTERACTIVE
+   
+   If still not there, your AutoCAD might be locked. Try:
+   - Close AutoCAD
+   - Delete: C:\Users\jdbul\AppData\Local\Autodesk\AutoCAD 2026\*.dat
+   - Restart AutoCAD
+   - NETLOAD again
+
+STEP 3: COMMAND NOT IN DLL - REBUILD NEEDED
+==========================================
+The command didn't compile. Need to rebuild.
+
+1. OPEN Visual Studio
+
+2. CLEAN SOLUTION
+   Menu: Build → Clean Solution
+   Wait for: "Clean succeeded"
+
+3. REBUILD SOLUTION
+   Press: Ctrl+Shift+B
+   OR Menu: Build → Rebuild Solution
+   
+   Wait for: "Build succeeded"
+   
+   Check Output window (View → Output) for:
+   "0 Error(s)"
+   "ACSE.AutoCAD2026 -> C:\...\ACSE.AutoCAD2026.dll"
+
+4. VERIFY BUILD
+   Double-click: VERIFY_DLL.bat
+   
+   Should now show:
+   - "DLL is FRESH (built X minutes ago)"
+   - "ACSE_UI_INTERACTIVE" in command list
+   
+   If still missing:
+   - Check Error List in Visual Studio
+   - Fix any errors
+   - Rebuild again
+
+5. AFTER SUCCESSFUL REBUILD
+   → Go back to STEP 2 and load in AutoCAD
+
+TROUBLESHOOTING
+==========================================
+
+Problem: VERIFY_DLL.bat shows "DLL NOT FOUND"
+Solution: Build the solution first in Visual Studio
+
+Problem: VERIFY_DLL.bat shows "DLL is OLD"
+Solution: Rebuild in Visual Studio, run VERIFY_DLL.bat again
+
+Problem: Build fails with errors
+Solution: Check Error List window, fix errors, rebuild
+
+Problem: AutoCAD shows "eDuplicateKey" error
+Solution: Old DLL already loaded
+         → Close AutoCAD completely
+         → Restart
+         → NETLOAD fresh DLL
+
+Problem: Command runs but window doesn't open
+Solution: Check AutoCAD command line for error message
+         → Share the error for help
+
+QUICK SUCCESS CHECK
+==========================================
+✓ VERIFY_DLL.bat shows ACSE_UI_INTERACTIVE in list
+✓ AutoCAD closed and restarted
+✓ NETLOAD shows "initialized successfully" message
+✓ Command ACSE_UI_INTERACTIVE typed
+✓ Window opens with "Interactive Compliance Scanner" title
+
+If all ✓, it's working!
+
+═══════════════════════════════════════════════════════════════
+
+START HERE: Double-click VERIFY_DLL.bat now!

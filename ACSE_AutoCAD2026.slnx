@@ -1,0 +1,16 @@
+<Solution>
+  <Configurations>
+    <BuildType Name="Debug" />
+    <BuildType Name="Release" />
+    <BuildType Name="x64" />
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="ACSE_AutoCAD2026/ACSE.AutoCAD2026.csproj" />
+  <Project Path="ACSE_AutoCAD2026_WPF/ACSE_AutoCAD2026_WPF.vcxproj" Id="6736355e-282b-4c63-bbf7-06ecdd754b97">
+    <BuildType Solution="x64|x64" Project="Debug" />
+    <BuildType Solution="x64|x86" Project="Debug" />
+    <Build Solution="x64|x64" Project="false" />
+  </Project>
+</Solution>

@@ -1,0 +1,59 @@
+{
+  "TemplatePath": "C:\\Standards\\ACSE_Template.dwt",
+  
+  "RequiredDimStyleName": "ASBUILT",
+  "RequiredTextStyle": "STANDARD",
+  "RequiredFont": "romans.shx",
+  "RequiredFontSize": 0.125,
+  "RequireAnnotative": true,
+  
+  "AnnoDimLayerName": "ANNO-DIMN",
+  "RequiredLinetype": "ByLayer",
+  
+  "ApprovedTextStyles": ["STANDARD", "ASBUILT", "ANNO-TEXT"],
+  "ApprovedDimStyles": ["ASBUILT", "ANNO-DIM"],
+  "ApprovedLayers": ["ANNO-DIMN", "A-WALL", "A-DOOR", "A-WIND"],
+  "ApprovedLinetypes": ["ByLayer", "Continuous", "HIDDEN"],
+  
+  "DimTextHeight": 0.125,
+  "DimArrowSize": 0.125,
+  "DimAnnotative": true,
+  "DimUnits": 2,
+  "DimDecimals": 2,
+  
+  "CustomScoringFactors": [
+    {
+      "Name": "LayerCriticality",
+      "Weight": 0.32,
+      "BaseValue": 0.96,
+      "Condition": "Layer",
+      "Description": "Layer violations are critical and very safe to auto-fix"
+    },
+    {
+      "Name": "DimStyleReliability",
+      "Weight": 0.28,
+      "BaseValue": 0.94,
+      "Condition": "DimStyle",
+      "Description": "Dimension style changes are highly reliable"
+    },
+    {
+      "Name": "FrequencyBonus",
+      "Weight": 0.18,
+      "BaseValue": 0.85,
+      "Condition": "HighFrequency",
+      "Description": "Common violations (5+ occurrences) get confidence boost"
+    },
+    {
+      "Name": "TextConsistency",
+      "Weight": 0.12,
+      "BaseValue": 0.88,
+      "Description": "Text style fixes are generally safe"
+    },
+    {
+      "Name": "SideEffectRisk",
+      "Weight": 0.10,
+      "BaseValue": 0.65,
+      "Description": "Penalty for risky operations on blocks/xrefs"
+    }
+  ]
+}

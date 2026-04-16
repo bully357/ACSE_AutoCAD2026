@@ -1,0 +1,8 @@
+{
+  {
+    "RequiredDimStyle": "ASBUILT",
+    "RequiredTextStyle": "STANDARD",
+    "RequiredLinetype": "Continuous",
+    "AllowedLayers": []
+  }
+}
