@@ -16,6 +16,8 @@ namespace ACSE.AutoCAD2026.Compliance
             var db = doc.Database;
             int fixedCount = 0;
 
+            // Required when called from a modeless WPF dialog.
+            using var docLock = doc.LockDocument();
             using var tr = db.TransactionManager.StartTransaction();
 
             foreach (var violation in scanResult.Violations)
@@ -255,43 +257,96 @@ namespace ACSE.AutoCAD2026.Compliance
 
         public static int ApplySingleFix(Violation v)
         {
+            return ApplySingleFix(v, null);
+        }
+
+        /// <summary>
+        /// Apply a single violation fix. Safe to call from a modeless WPF window.
+        /// If <paramref name="standards"/> is provided, missing text/dim styles
+        /// will be imported from the template (same behavior as Fix All).
+        /// </summary>
+        public static int ApplySingleFix(Violation v, StandardsModel? standards)
+        {
             var doc = Application.DocumentManager.MdiActiveDocument
                       ?? throw new InvalidOperationException("No active document.");
             var db = doc.Database;
 
+            // REQUIRED when called from a modeless WPF dialog - otherwise
+            // OpenMode.ForWrite throws eLockViolation and the outer catch
+            // in the UI silently records it as a "failed" fix.
+            using var docLock = doc.LockDocument();
             using var tr = db.TransactionManager.StartTransaction();
 
-            if (tr.GetObject(v.EntityId, OpenMode.ForWrite, false) is not Entity ent)
+            // Resolve by HANDLE (ObjectId can be stale after rescans).
+            ObjectId entityId;
+            if (!string.IsNullOrWhiteSpace(v.EntityHandle))
+            {
+                if (!TryGetObjectIdFromHandle(db, v.EntityHandle, out entityId))
+                    return 0;
+            }
+            else if (v.EntityId.IsValid && !v.EntityId.IsNull)
+            {
+                entityId = v.EntityId;
+            }
+            else
+            {
                 return 0;
+            }
+
+            if (tr.GetObject(entityId, OpenMode.ForWrite, false) is not Entity ent)
+                return 0;
+
+            bool fixed_ = false;
 
             switch (v.Type)
             {
                 case ViolationType.Linetype:
-                    ent.Linetype = v.Expected;
+                    {
+                        string target = string.IsNullOrWhiteSpace(v.Expected) ? "ByLayer" : v.Expected;
+                        if (!string.Equals(ent.Linetype, target, StringComparison.OrdinalIgnoreCase))
+                        {
+                            ent.Linetype = target;
+                            fixed_ = true;
+                        }
+                    }
                     break;
 
                 case ViolationType.Layer:
-                    ent.Layer = v.Expected;
+                    if (!string.IsNullOrWhiteSpace(v.Expected) &&
+                        !string.Equals(ent.Layer, v.Expected, StringComparison.OrdinalIgnoreCase))
+                    {
+                        ent.Layer = v.Expected;
+                        fixed_ = true;
+                    }
                     break;
 
                 case ViolationType.TextStyle:
-                    ApplyTextStyleFix(tr, db, ent, v.Expected);
+                    fixed_ = ApplyTextStyleFix(tr, db, ent, v.Expected, standards);
                     break;
 
                 case ViolationType.DimStyle:
-                    ApplyDimStyleFix(tr, db, ent, v.Expected);
+                    fixed_ = ApplyDimStyleFix(tr, db, ent, v.Expected, standards);
                     break;
 
                 case ViolationType.TextSize:
-                    if (ent is DBText dbText)
-                        dbText.Height = double.Parse(v.Expected);
-                    else if (ent is MText mtext)
-                        mtext.TextHeight = double.Parse(v.Expected);
+                    {
+                        if (double.TryParse(v.Expected, System.Globalization.NumberStyles.Float,
+                                System.Globalization.CultureInfo.InvariantCulture, out double h) && h > 0)
+                        {
+                            if (ent is DBText dbText) { dbText.Height = h; fixed_ = true; }
+                            else if (ent is MText mtext) { mtext.TextHeight = h; fixed_ = true; }
+                            else if (ent is Dimension dimSize && standards != null)
+                                fixed_ = ApplyDimensionSizeFix(tr, db, dimSize, standards);
+                        }
+                    }
                     break;
 
                 case ViolationType.Annotative:
                     if (ent is MText mtextAnnot)
+                    {
                         mtextAnnot.Annotative = AnnotativeStates.True;
+                        fixed_ = true;
+                    }
                     break;
 
                 default:
@@ -299,30 +354,142 @@ namespace ACSE.AutoCAD2026.Compliance
             }
 
             tr.Commit();
-            return 1;
+            return fixed_ ? 1 : 0;
         }
 
-        private static void ApplyTextStyleFix(Transaction tr, Database db, Entity ent, string styleName)
+        /// <summary>
+        /// Apply a TextStyle fix to a single entity. Handles DBText, MText,
+        /// AttributeDefinition, AttributeReference, MLeader, and Leader.
+        /// If <paramref name="standards"/> is supplied, will import the style
+        /// from the template when it is missing in the current drawing.
+        /// Returns true if a change was made.
+        /// </summary>
+        private static bool ApplyTextStyleFix(Transaction tr, Database db, Entity ent, string styleName, StandardsModel? standards)
         {
+            if (string.IsNullOrWhiteSpace(styleName)) return false;
+
             var tst = (TextStyleTable)tr.GetObject(db.TextStyleTableId, OpenMode.ForRead);
-            if (!tst.Has(styleName))
-                throw new InvalidOperationException($"TextStyle '{styleName}' not found in drawing.");
+            ObjectId styleId;
 
-            ObjectId styleId = tst[styleName];
+            if (tst.Has(styleName))
+            {
+                styleId = tst[styleName];
+            }
+            else if (standards != null)
+            {
+                // Re-use the bulk path's template import helper.
+                var saved = standards.RequiredTextStyle;
+                standards.RequiredTextStyle = styleName;
+                try { styleId = GetOrImportTextStyle(db, tr, standards); }
+                finally { standards.RequiredTextStyle = saved; }
 
-            if (ent is DBText t) t.TextStyleId = styleId;
-            else if (ent is MText mt) mt.TextStyleId = styleId;
+                if (styleId.IsNull) return false;
+            }
+            else
+            {
+                // Style not present and no standards to import from.
+                return false;
+            }
+
+            if (ent is DBText t)
+            {
+                if (t.TextStyleId == styleId) return false;
+                t.TextStyleId = styleId;
+                return true;
+            }
+            if (ent is MText mt)
+            {
+                if (mt.TextStyleId == styleId) return false;
+                mt.TextStyleId = styleId;
+                return true;
+            }
+            if (ent is AttributeDefinition attDef)
+            {
+                if (attDef.TextStyleId == styleId) return false;
+                attDef.TextStyleId = styleId;
+                return true;
+            }
+            if (ent is AttributeReference attRef)
+            {
+                if (attRef.TextStyleId == styleId) return false;
+                attRef.TextStyleId = styleId;
+                return true;
+            }
+            if (ent is MLeader mleader)
+            {
+                bool changed = false;
+
+                // Prefer the direct per-instance override - this is the most
+                // reliable way to re-style an MLeader's visible text.
+                try
+                {
+                    if (mleader.TextStyleId != styleId)
+                    {
+                        mleader.TextStyleId = styleId;
+                        changed = true;
+                    }
+                }
+                catch { /* some MLeaders don't expose a per-instance style */ }
+
+                // Also update the shared MLeaderStyle so new content picks it up.
+                if (!mleader.MLeaderStyle.IsNull)
+                {
+                    try
+                    {
+                        var ms = (MLeaderStyle)tr.GetObject(mleader.MLeaderStyle, OpenMode.ForWrite);
+                        if (ms.TextStyleId != styleId)
+                        {
+                            ms.TextStyleId = styleId;
+                            changed = true;
+                        }
+                    }
+                    catch { }
+                }
+
+                return changed;
+            }
+            if (ent is Leader leader && !leader.Annotation.IsNull)
+            {
+                if (tr.GetObject(leader.Annotation, OpenMode.ForWrite, false) is MText annoMt
+                    && annoMt.TextStyleId != styleId)
+                {
+                    annoMt.TextStyleId = styleId;
+                    return true;
+                }
+            }
+            return false;
         }
 
-        private static void ApplyDimStyleFix(Transaction tr, Database db, Entity ent, string dimStyleName)
+        /// <summary>
+        /// Apply a DimStyle fix to a single Dimension entity.
+        /// Imports the DimStyle from the template if missing and standards provided.
+        /// </summary>
+        private static bool ApplyDimStyleFix(Transaction tr, Database db, Entity ent, string dimStyleName, StandardsModel? standards)
         {
-            if (ent is not Dimension dim) return;
+            if (ent is not Dimension dim) return false;
+            if (string.IsNullOrWhiteSpace(dimStyleName)) return false;
 
             var dst = (DimStyleTable)tr.GetObject(db.DimStyleTableId, OpenMode.ForRead);
-            if (!dst.Has(dimStyleName))
-                throw new InvalidOperationException($"DimStyle '{dimStyleName}' not found in drawing.");
+            ObjectId styleId;
 
-            dim.DimensionStyle = dst[dimStyleName];
+            if (dst.Has(dimStyleName))
+            {
+                styleId = dst[dimStyleName];
+            }
+            else if (standards != null && !string.IsNullOrEmpty(standards.TemplatePath))
+            {
+                styleId = GetOrImportDimStyle(db, tr, dimStyleName, standards.TemplatePath);
+                if (styleId.IsNull) return false;
+            }
+            else
+            {
+                return false;
+            }
+
+            if (dim.DimensionStyle == styleId) return false;
+            dim.DimensionStyle = styleId;
+            dim.RecomputeDimensionBlock(true);
+            return true;
         }
 
         /// <summary>
@@ -437,48 +604,37 @@ namespace ACSE.AutoCAD2026.Compliance
                     {
                         bool changed = false;
 
-                        // 1) Fix the shared MLeaderStyle definition
-                        if (!mleader.MLeaderStyle.IsNull)
+                        // 1) Direct per-instance override - the reliable API.
+                        try
                         {
-                            var mleaderStyle = (MLeaderStyle)tr.GetObject(mleader.MLeaderStyle, OpenMode.ForWrite);
-                            if (mleaderStyle.TextStyleId != requiredStyleId)
+                            if (mleader.TextStyleId != requiredStyleId)
                             {
-                                ed.WriteMessage($"\n[DEBUG] MLeader {v.EntityHandle}: Updating MLeaderStyle '{mleaderStyle.Name}' TextStyleId");
-                                mleaderStyle.TextStyleId = requiredStyleId;
+                                mleader.TextStyleId = requiredStyleId;
+                                ed.WriteMessage($"\n[DEBUG] MLeader {v.EntityHandle}: Set per-instance TextStyleId");
                                 changed = true;
                             }
-                            else
-                            {
-                                ed.WriteMessage($"\n[DEBUG] MLeader {v.EntityHandle}: MLeaderStyle already correct");
-                            }
                         }
-                        else
+                        catch (Exception ex)
                         {
-                            ed.WriteMessage($"\n[DEBUG] MLeader {v.EntityHandle}: No MLeaderStyle reference");
+                            ed.WriteMessage($"\n[DEBUG] MLeader {v.EntityHandle}: TextStyleId override failed - {ex.Message}");
                         }
 
-                        // 2) Fix per-instance text content (MTextContent)
-                        if (mleader.ContentType == ContentType.MTextContent)
+                        // 2) Also fix the shared MLeaderStyle definition.
+                        if (!mleader.MLeaderStyle.IsNull)
                         {
                             try
                             {
-                                var leaderMText = mleader.MText;
-                                if (leaderMText != null && leaderMText.TextStyleId != requiredStyleId)
+                                var mleaderStyle = (MLeaderStyle)tr.GetObject(mleader.MLeaderStyle, OpenMode.ForWrite);
+                                if (mleaderStyle.TextStyleId != requiredStyleId)
                                 {
-                                    leaderMText.TextStyleId = requiredStyleId;
-                                    mleader.MText = leaderMText; // re-assign to persist
-                                    ed.WriteMessage($"\n[DEBUG] MLeader {v.EntityHandle}: Updated MLeader MText content TextStyleId");
+                                    mleaderStyle.TextStyleId = requiredStyleId;
+                                    ed.WriteMessage($"\n[DEBUG] MLeader {v.EntityHandle}: Updated MLeaderStyle '{mleaderStyle.Name}' TextStyleId");
                                     changed = true;
-                                }
-                                else
-                                {
-                                    ed.WriteMessage($"\n[DEBUG] MLeader {v.EntityHandle}: MText content already correct");
                                 }
                             }
                             catch (Exception ex)
                             {
-                                ed.WriteMessage($"\n[DEBUG] MLeader {v.EntityHandle}: MText content update failed - {ex.Message}");
-                                result.FailedCount++;
+                                ed.WriteMessage($"\n[DEBUG] MLeader {v.EntityHandle}: MLeaderStyle update failed - {ex.Message}");
                             }
                         }
 
@@ -637,7 +793,7 @@ namespace ACSE.AutoCAD2026.Compliance
         /// <summary>
         /// Gets an existing dim style or imports it from the template.
         /// </summary>
-        private static ObjectId GetOrImportDimStyle(Database db, Transaction tr, string styleName, string templatePath)
+        internal static ObjectId GetOrImportDimStyle(Database db, Transaction tr, string styleName, string templatePath)
         {
             var dst = (DimStyleTable)tr.GetObject(db.DimStyleTableId, OpenMode.ForRead);
 
@@ -685,6 +841,53 @@ namespace ACSE.AutoCAD2026.Compliance
             }
 
             return ObjectId.Null;
+        }
+
+        /// <summary>
+        /// Gets an existing text style or imports it from the template by name.
+        /// Used by InteractiveFixEngine when the user supplies a custom style name
+        /// different from standards.RequiredTextStyle. Returns ObjectId.Null on failure.
+        /// </summary>
+        internal static ObjectId GetOrImportTextStyleByName(Database db, Transaction tr, string styleName, string templatePath)
+        {
+            if (string.IsNullOrWhiteSpace(styleName)) return ObjectId.Null;
+
+            var tst = (TextStyleTable)tr.GetObject(db.TextStyleTableId, OpenMode.ForRead);
+            if (tst.Has(styleName))
+                return tst[styleName];
+
+            if (string.IsNullOrEmpty(templatePath) || !System.IO.File.Exists(templatePath))
+                return ObjectId.Null;
+
+            try
+            {
+                using var sourceDb = new Database(false, true);
+                sourceDb.ReadDwgFile(templatePath, FileOpenMode.OpenForReadAndAllShare, true, "");
+
+                ObjectIdCollection sourceIds;
+                using (var sourceTr = sourceDb.TransactionManager.StartTransaction())
+                {
+                    var sourceTst = (TextStyleTable)sourceTr.GetObject(sourceDb.TextStyleTableId, OpenMode.ForRead);
+                    if (!sourceTst.Has(styleName))
+                    {
+                        sourceTr.Commit();
+                        return ObjectId.Null;
+                    }
+                    sourceIds = new ObjectIdCollection { sourceTst[styleName] };
+                    sourceTr.Commit();
+                }
+
+                var mapping = new IdMapping();
+                sourceDb.WblockCloneObjects(sourceIds, db.TextStyleTableId, mapping, DuplicateRecordCloning.Replace, false);
+
+                tr.TransactionManager.QueueForGraphicsFlush();
+                tst = (TextStyleTable)tr.GetObject(db.TextStyleTableId, OpenMode.ForRead);
+                return tst.Has(styleName) ? tst[styleName] : ObjectId.Null;
+            }
+            catch
+            {
+                return ObjectId.Null;
+            }
         }
 
         private static ObjectId GetOrImportTextStyle(Database db, Transaction tr, StandardsModel standards)

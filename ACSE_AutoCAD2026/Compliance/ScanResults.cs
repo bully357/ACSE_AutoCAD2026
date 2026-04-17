@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace ACSE.AutoCAD2026.Compliance;
 
@@ -22,19 +23,22 @@ public record ScanResult
 
     public ScanResult(HashSet<string> layersFound)
     {
-        this.layersFound = layersFound;
+        this.layersFound = new HashSet<string>(layersFound, StringComparer.OrdinalIgnoreCase);
     }
 
-    private readonly HashSet<string> layersFound = [];
+    // AutoCAD symbol-table names are case-insensitive (e.g. "STANDARD" == "Standard"),
+    // so all "found" sets use OrdinalIgnoreCase to prevent duplicates and to align
+    // with the case-insensitive comparisons used by StandardsModel.
+    private readonly HashSet<string> layersFound = new(StringComparer.OrdinalIgnoreCase);
 
     public HashSet<string> GetLayersFound()
     {
         return layersFound;
     }
 
-    public HashSet<string> LinetypesFound { get; } = [];
-    public HashSet<string> TextStylesFound { get; } = [];
-    public HashSet<string> DimStylesFound { get; } = [];
+    public HashSet<string> LinetypesFound { get; } = new(StringComparer.OrdinalIgnoreCase);
+    public HashSet<string> TextStylesFound { get; } = new(StringComparer.OrdinalIgnoreCase);
+    public HashSet<string> DimStylesFound { get; } = new(StringComparer.OrdinalIgnoreCase);
 
     public List<Violation> Violations { get; } = [];
 
