@@ -66,7 +66,7 @@
 
 	<!-- Post-build deployment -->
 	<Target Name="PostBuild" AfterTargets="PostBuildEvent" Condition="'$(SolutionDir)' != '' AND '$(SolutionDir)' != '*Undefined*'">
-		<Exec Command="set &quot;BUNDLE=$(SolutionDir)deploy\ACSE.bundle\Contents\Windows&quot;&#xD;&#xA;if not exist &quot;%25BUNDLE%25&quot; mkdir &quot;%25BUNDLE%25&quot;&#xD;&#xA>xcopy /Y /I &quot;$(TargetDir)*.dll&quot; &quot;%25BUNDLE%25\&quot;&#xD;&#xA>xcopy /Y /I &quot;$(TargetDir)*.pdb&quot; &quot;%25BUNDLE%25\&quot;" />
+		<Exec Command="set &quot;BUNDLE=$(SolutionDir)deploy\ACSE.bundle\Contents\Windows&quot;&#xD;&#xA;if not exist &quot;%25BUNDLE%25&quot; mkdir &quot;%25BUNDLE%25&quot;&#xD;&#xA;xcopy /Y /I &quot;$(TargetDir)*.dll&quot; &quot;%25BUNDLE%25\&quot;&#xD;&#xA;xcopy /Y /I &quot;$(TargetDir)*.pdb&quot; &quot;%25BUNDLE%25\&quot;" />
 	</Target>
 
 </Project>
