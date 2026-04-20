@@ -129,19 +129,21 @@ namespace ACSE.AutoCAD2026.Compliance
                     }
 
                     // Apply to every entity type the scanner flags for TextStyle.
+                    // NOTE: AttributeReference and AttributeDefinition both inherit from
+                    // DBText, so they must be matched BEFORE DBText in the switch.
                     switch (ent)
                     {
+                        case AttributeReference attRef:
+                            attRef.TextStyleId = styleId;
+                            return true;
+                        case AttributeDefinition attDef:
+                            attDef.TextStyleId = styleId;
+                            return true;
                         case DBText dbText:
                             dbText.TextStyleId = styleId;
                             return true;
                         case MText mtext:
                             mtext.TextStyleId = styleId;
-                            return true;
-                        case AttributeDefinition attDef:
-                            attDef.TextStyleId = styleId;
-                            return true;
-                        case AttributeReference attRef:
-                            attRef.TextStyleId = styleId;
                             return true;
                         case MLeader mleader:
                             // Per-instance override (doesn't mutate the shared MLeaderStyle).
@@ -313,10 +315,11 @@ namespace ACSE.AutoCAD2026.Compliance
         {
             switch (ent)
             {
+                // AttributeReference/Definition inherit from DBText — match first.
+                case AttributeReference ar: return ar.TextStyleId;
+                case AttributeDefinition ad: return ad.TextStyleId;
                 case DBText t: return t.TextStyleId;
                 case MText m: return m.TextStyleId;
-                case AttributeDefinition ad: return ad.TextStyleId;
-                case AttributeReference ar: return ar.TextStyleId;
                 case MLeader ml:
                     // Prefer the per-instance override; fall back to the MLeaderStyle's text style.
                     if (!ml.TextStyleId.IsNull && ml.TextStyleId.IsValid)
@@ -344,10 +347,11 @@ namespace ACSE.AutoCAD2026.Compliance
         {
             switch (ent)
             {
+                // AttributeReference/Definition inherit from DBText — match first.
+                case AttributeReference ar: ar.TextStyleId = styleId; return true;
+                case AttributeDefinition ad: ad.TextStyleId = styleId; return true;
                 case DBText t: t.TextStyleId = styleId; return true;
                 case MText m: m.TextStyleId = styleId; return true;
-                case AttributeDefinition ad: ad.TextStyleId = styleId; return true;
-                case AttributeReference ar: ar.TextStyleId = styleId; return true;
                 case MLeader ml: ml.TextStyleId = styleId; return true;
                 default: return false;
             }
@@ -418,7 +422,7 @@ namespace ACSE.AutoCAD2026.Compliance
                     newTs.XScale = baseTs.XScale;
                     newTs.ObliquingAngle = baseTs.ObliquingAngle;
                     newTs.IsVertical = baseTs.IsVertical;
-                    newTs.IsAnnotative = baseTs.IsAnnotative;
+                    newTs.Annotative = baseTs.Annotative;
                 }
                 catch { }
 
@@ -520,7 +524,7 @@ namespace ACSE.AutoCAD2026.Compliance
             // TTF / system font — compare against the FontDescriptor typeface.
             try
             {
-                var typeFace = ts.Font?.TypeFace ?? "";
+                var typeFace = ts.Font.TypeFace ?? "";
                 return string.Equals(typeFace, font, StringComparison.OrdinalIgnoreCase);
             }
             catch
